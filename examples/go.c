@@ -1,4 +1,4 @@
-#include "darknet.h"
+#include "../include/darknet.h"
 
 #include <unistd.h>
 

@@ -1,4 +1,4 @@
-#include "darknet.h"
+#include "../include/darknet.h"
 
 void train_super(char *cfgfile, char *weightfile, int clear)
 {

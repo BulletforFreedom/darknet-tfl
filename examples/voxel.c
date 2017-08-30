@@ -1,4 +1,4 @@
-#include "darknet.h"
+#include "../include/darknet.h"
 
 void extract_voxel(char *lfile, char *rfile, char *prefix)
 {

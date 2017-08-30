@@ -1,7 +1,7 @@
 #ifndef CUDA_H
 #define CUDA_H
 
-#include "darknet.h"
+#include "../include/darknet.h"
 
 #ifdef GPU
 

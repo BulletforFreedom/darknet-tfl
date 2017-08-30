@@ -1,6 +1,6 @@
 #ifndef MATRIX_H
 #define MATRIX_H
-#include "darknet.h"
+#include "../include/darknet.h"
 
 matrix copy_matrix(matrix m);
 void print_matrix(matrix m);

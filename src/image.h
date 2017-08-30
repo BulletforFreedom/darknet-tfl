@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h>
 #include "box.h"
-#include "darknet.h"
+#include "../include/darknet.h"
 
 #ifndef __cplusplus
 #ifdef OPENCV

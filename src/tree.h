@@ -1,6 +1,6 @@
 #ifndef TREE_H
 #define TREE_H
-#include "darknet.h"
+#include "../include/darknet.h"
 
 tree *read_tree(char *filename);
 int hierarchy_top_prediction(float *predictions, tree *hier, float thresh, int stride);

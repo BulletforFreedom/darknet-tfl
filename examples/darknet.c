@@ -1,4 +1,4 @@
-#include "darknet.h"
+#include "../include/darknet.h"
 
 #include <time.h>
 #include <stdlib.h>
@@ -402,6 +402,7 @@ void visualize(char *cfgfile, char *weightfile)
 #endif
 }
 
+//##### 程序入口 #####
 int main(int argc, char **argv)
 {
     //test_resize("data/bad.jpg");
@@ -411,7 +412,18 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: %s <function>\n", argv[0]);
         return 0;
     }
+
+    // 输出程序的输入参数
+    printf("\n#####tanfulun#####\n");
+    printf("argc : %d\n",argc);
+    for(int i=0;i<=argc;i++)
+        printf("argv[%d] : %s\n",i,argv[i]);
+    printf("\n");
+
+    // 获取GPU的ID（参数中 “-i”，默认值为0）
     gpu_index = find_int_arg(argc, argv, "-i", 0);
+
+    // 是否有“-nogpu”关键字，有则将gpu_index置为-1
     if(find_arg(argc, argv, "-nogpu")) {
         gpu_index = -1;
     }
