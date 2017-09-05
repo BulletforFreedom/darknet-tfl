@@ -4,6 +4,9 @@
 #include "option_list.h"
 #include "utils.h"
 
+// 描述：读取数据集相关的信息（路径，类别等）
+// 输入：文件名
+// 输出：list
 list *read_data_cfg(char *filename)
 {
     FILE *file = fopen(filename, "r");

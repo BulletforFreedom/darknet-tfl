@@ -627,6 +627,7 @@ int is_network(section *s)
             || strcmp(s->type, "[network]")==0);
 }
 
+// 读取DNN配置文件
 network parse_network_cfg(char *filename)
 {
     list *sections = read_cfg(filename);
@@ -763,6 +764,7 @@ network parse_network_cfg(char *filename)
     return net;
 }
 
+// 解析“.cfg”文件
 list *read_cfg(char *filename)
 {
     FILE *file = fopen(filename, "r");
@@ -1178,6 +1180,7 @@ void load_weights_upto(network *net, char *filename, int start, int cutoff)
     fclose(fp);
 }
 
+// 加载“模型参数”
 void load_weights(network *net, char *filename)
 {
     load_weights_upto(net, filename, 0, net->n);

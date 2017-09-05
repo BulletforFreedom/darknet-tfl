@@ -174,9 +174,11 @@ void draw_bbox(image a, box bbox, int w, float r, float g, float b)
     }
 }
 
+// 加载 “data/labels” 文件夹下图片；
 image **load_alphabet()
 {
     int i, j;
+    // 每组图片8张（不同的size）
     const int nsize = 8;
     image **alphabets = calloc(nsize, sizeof(image));
     for(j = 0; j < nsize; ++j){
@@ -184,7 +186,9 @@ image **load_alphabet()
         for(i = 32; i < 127; ++i){
             char buff[256];
             sprintf(buff, "data/labels/%d_%d.png", i, j);
+            // 输入每一张图片
             alphabets[j][i] = load_image_color(buff, 0, 0);
+            //printf("\tj=%d i=%d w=%d h=%d\n",j,i,alphabets[j][i].w,alphabets[j][i].h);
         }
     }
     return alphabets;
@@ -1389,6 +1393,9 @@ image load_image_stb(char *filename, int channels)
     return im;
 }
 
+// 描述：从 filename 的路径中加载图片；
+// （1）当h!=0且w!=0时，需要对载入的图片做resize;
+// （2）否则，直接载入不做处理；
 image load_image(char *filename, int w, int h, int c)
 {
 #ifdef OPENCV

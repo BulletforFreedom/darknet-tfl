@@ -1,7 +1,9 @@
+// 用双链表list（darknet.h中定义）实现“堆栈”的基本操作
 #include <stdlib.h>
 #include <string.h>
 #include "list.h"
 
+// 生成空栈
 list *make_list()
 {
 	list *l = malloc(sizeof(list));
@@ -25,6 +27,7 @@ void transfer_node(list *s, list *d, node *n)
 }
 */
 
+// 出栈（从表尾输出）
 void *list_pop(list *l){
     if(!l->back) return 0;
     node *b = l->back;
@@ -37,6 +40,7 @@ void *list_pop(list *l){
     return val;
 }
 
+// 入栈（从表尾入）
 void list_insert(list *l, void *val)
 {
 	node *new = malloc(sizeof(node));
@@ -79,6 +83,7 @@ void free_list_contents(list *l)
 	}
 }
 
+// “堆栈”转“数组”
 void **list_to_array(list *l)
 {
     void **a = calloc(l->size, sizeof(void*));

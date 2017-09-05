@@ -571,18 +571,26 @@ void validate_detector_recall(char *cfgfile, char *weightfile)
     }
 }
 
+// 物体检测方法入口
 void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen)
 {
+    // 获取模型的训练数据信息（训练集，验证集，类别总数，类别列表等）
     list *options = read_data_cfg(datacfg);
+    // 获取可以识别的“类别列表文件路径”，默认值为“data/name.list”
     char *name_list = option_find_str(options, "names", "data/names.list");
+    // 类别列表
     char **names = get_labels(name_list);
-
+    // 读取"data/label/"中的图片(图片名称用ASCII码命名).用于产生带BB的图片
     image **alphabet = load_alphabet();
+    // 读取“网络配置文件”,获取网络数据
     network net = parse_network_cfg(cfgfile);
+    // 读取“网络参数”
     if(weightfile){
         load_weights(&net, weightfile);
     }
+
     set_batch_network(&net, 1);
+
     srand(2222222);
     double time;
     char buff[256];

@@ -19,7 +19,8 @@ ALIB=libdarknet.a
 EXEC=darknet
 OBJDIR=./obj/
 
-CC=gcc
+CC=gcc -g -O0
+#CC=gcc
 NVCC=nvcc 
 AR=ar
 ARFLAGS=rcs

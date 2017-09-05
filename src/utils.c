@@ -1,3 +1,6 @@
+/* *****************
+ * Description: 为工程提供所有工具类的方法
+ * ****************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
