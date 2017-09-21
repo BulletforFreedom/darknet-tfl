@@ -180,7 +180,7 @@ image **load_alphabet()
     int i, j;
     // 每组图片8张（不同的size）
     const int nsize = 8;
-    image **alphabets = calloc(nsize, sizeof(image));
+    image **alphabets = calloc(nsize, sizeof(image*));
     for(j = 0; j < nsize; ++j){
         alphabets[j] = calloc(128, sizeof(image));
         for(i = 32; i < 127; ++i){
@@ -872,6 +872,10 @@ void letterbox_image_into(image im, int w, int h, image boxed)
     free_image(resized);
 }
 
+/** ##############
+ * 描述：保证图片 aspect ratio 不变的前提下将图片镶嵌到（w,h）的中心；
+ *      空白的部分用纯色填充；
+ * */
 image letterbox_image(image im, int w, int h)
 {
     int new_w = im.w;

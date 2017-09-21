@@ -63,11 +63,17 @@ void binarize_input(float *input, int n, int size, float *binary)
     }
 }
 
+/** #################
+ * 计算卷积层 Height 输出尺寸
+ * */
 int convolutional_out_height(convolutional_layer l)
 {
     return (l.h + 2*l.pad - l.size) / l.stride + 1;
 }
 
+/** #################
+ * 计算卷积层 Width 输出尺寸
+ * */
 int convolutional_out_width(convolutional_layer l)
 {
     return (l.w + 2*l.pad - l.size) / l.stride + 1;
@@ -163,6 +169,9 @@ void cudnn_convolutional_setup(layer *l)
 #endif
 #endif
 
+/** ################
+ * 描述：初始化卷积层
+ * */
 convolutional_layer make_convolutional_layer(int batch, int h, int w, int c, int n, int size, int stride, int padding, ACTIVATION activation, int batch_normalize, int binary, int xnor, int adam)
 {
     int i;
@@ -178,23 +187,25 @@ convolutional_layer make_convolutional_layer(int batch, int h, int w, int c, int
     l.batch = batch;
     l.stride = stride;
     l.size = size;
-    l.pad = padding;
+    l.pad = padding;    // size of padding pixels
     l.batch_normalize = batch_normalize;
 
-    l.weights = calloc(c*n*size*size, sizeof(float));
-    l.weight_updates = calloc(c*n*size*size, sizeof(float));
+    l.weights = calloc(c*n*size*size, sizeof(float));           // weight:
+    l.weight_updates = calloc(c*n*size*size, sizeof(float));    // diff:
 
     l.biases = calloc(n, sizeof(float));
     l.bias_updates = calloc(n, sizeof(float));
 
-    l.nweights = c*n*size*size;
-    l.nbiases = n;
+    l.nweights = c*n*size*size;     // weight数目 = 通道数x卷积核个数x(卷积核尺寸^2)
+    l.nbiases = n;                  // bias数目
 
+    // 卷积核参数（Xavier）初始化；针对ReLU改进所以参数为“2”；最终使用的是标准差；
     // float scale = 1./sqrt(size*size*c);
     float scale = sqrt(2./(size*size*c));
     //scale = .02;
     //for(i = 0; i < c*n*size*size; ++i) l.weights[i] = scale*rand_uniform(-1, 1);
     for(i = 0; i < c*n*size*size; ++i) l.weights[i] = scale*rand_normal();
+
     int out_w = convolutional_out_width(l);
     int out_h = convolutional_out_height(l);
     l.out_h = out_h;
@@ -206,14 +217,19 @@ convolutional_layer make_convolutional_layer(int batch, int h, int w, int c, int
     l.output = calloc(l.batch*l.outputs, sizeof(float));
     l.delta  = calloc(l.batch*l.outputs, sizeof(float));
 
+    // 给函数指针赋值，指向该层定义的 forward backward update 函数
     l.forward = forward_convolutional_layer;
     l.backward = backward_convolutional_layer;
     l.update = update_convolutional_layer;
+
+    // BWN(Binary Weight Network)
     if(binary){
         l.binary_weights = calloc(c*n*size*size, sizeof(float));
         l.cweights = calloc(c*n*size*size, sizeof(char));
         l.scales = calloc(n, sizeof(float));
     }
+
+    // X-NOR Net
     if(xnor){
         l.binary_weights = calloc(c*n*size*size, sizeof(float));
         l.binary_input = calloc(l.inputs*l.batch, sizeof(float));
@@ -237,6 +253,8 @@ convolutional_layer make_convolutional_layer(int batch, int h, int w, int c, int
         l.x = calloc(l.batch*l.outputs, sizeof(float));
         l.x_norm = calloc(l.batch*l.outputs, sizeof(float));
     }
+
+    // 分配参数更新方法（momentum/RMSprop/Adam）所需的参数的空间
     if(adam){
         l.m = calloc(c*n*size*size, sizeof(float));
         l.v = calloc(c*n*size*size, sizeof(float));
@@ -430,6 +448,9 @@ void backward_bias(float *bias_updates, float *delta, int batch, int n, int size
     }
 }
 
+/** ###########
+ * 描述：卷积层前向
+ * */
 void forward_convolutional_layer(convolutional_layer l, network net)
 {
     int out_h = l.out_h;
@@ -472,6 +493,9 @@ void forward_convolutional_layer(convolutional_layer l, network net)
     if(l.binary || l.xnor) swap_binary(&l);
 }
 
+/** ###########
+ * 描述：卷积层后向
+ * */
 void backward_convolutional_layer(convolutional_layer l, network net)
 {
     int i;
@@ -510,6 +534,9 @@ void backward_convolutional_layer(convolutional_layer l, network net)
     }
 }
 
+/** ###########
+ * 描述：卷积层更新权值
+ * */
 void update_convolutional_layer(convolutional_layer l, update_args a)
 {
     float learning_rate = a.learning_rate*l.learning_rate_scale;

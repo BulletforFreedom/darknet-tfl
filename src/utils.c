@@ -583,7 +583,10 @@ int rand_int(int min, int max)
     return r;
 }
 
-// From http://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
+/** ################
+ * 产生标准正态分布随机数
+ * From http://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
+ * */
 float rand_normal()
 {
     static int haveSpare = 0;

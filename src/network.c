@@ -189,6 +189,7 @@ char *get_layer_string(LAYER_TYPE a)
     return "none";
 }
 
+// 网络初始化
 network make_network(int n)
 {
     network net = {0};
@@ -200,6 +201,9 @@ network make_network(int n)
     return net;
 }
 
+/** ############
+ * 前向
+ * */
 void forward_network(network net)
 {
     int i;
@@ -209,6 +213,7 @@ void forward_network(network net)
         if(l.delta){
             fill_cpu(l.outputs * l.batch, 0, l.delta, 1);
         }
+        // 每一个layer上挂载的forward函数
         l.forward(l, net);
         net.input = l.output;
         if(l.truth) {
@@ -331,7 +336,9 @@ void set_temp_network(network net, float t)
     }
 }
 
-
+/** ##############
+ * 设置network每一层的 batch_size
+ * */
 void set_batch_network(network *net, int b)
 {
     net->batch = b;

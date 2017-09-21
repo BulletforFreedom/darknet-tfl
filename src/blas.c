@@ -166,6 +166,10 @@ void scal_cpu(int N, float ALPHA, float *X, int INCX)
     for(i = 0; i < N; ++i) X[i*INCX] *= ALPHA;
 }
 
+/** ###########
+ * 描述：数组初始化.为数组 X 的前 N 个元素赋值 ALPHA
+ *
+ * */
 void fill_cpu(int N, float ALPHA, float *X, int INCX)
 {
     int i;

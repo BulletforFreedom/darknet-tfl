@@ -1,3 +1,9 @@
+/***************************
+ * 文件名：parser.c
+ * 描述：解析DNN网络配置文件(.cfg)
+ *
+ *
+ * *************************/
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -165,16 +171,29 @@ layer parse_deconvolutional(list *options, size_params params)
     return l;
 }
 
-
+/** #################
+ * 读取卷积层参数
+ * 输入：
+ *      --option：当前层的参数；
+ *      --params：网络的全局参数；
+ * 输出：
+ *      --convolution_layer(layer)
+ * */
 convolutional_layer parse_convolutional(list *options, size_params params)
 {
+    // 卷积核个数
     int n = option_find_int(options, "filters",1);
+    // kernel_size
     int size = option_find_int(options, "size",1);
+    // stride
     int stride = option_find_int(options, "stride",1);
+    // 是否需要padding
     int pad = option_find_int_quiet(options, "pad",0);
+    // padding的尺寸(由kernel_size自动运算出)
     int padding = option_find_int_quiet(options, "padding",0);
     if(pad) padding = size/2;
 
+    // 激活函数
     char *activation_s = option_find_str(options, "activation", "logistic");
     ACTIVATION activation = get_activation(activation_s);
 
@@ -274,6 +293,8 @@ layer parse_region(list *options, size_params params)
 {
     int coords = option_find_int(options, "coords", 4);
     int classes = option_find_int(options, "classes", 20);
+
+    // anchor的个数(一个cell对应的box的个数)
     int num = option_find_int(options, "num", 1);
 
     layer l = make_region_layer(params.batch, params.w, params.h, num, classes, coords);
@@ -544,6 +565,9 @@ learning_rate_policy get_policy(char *s)
     return CONSTANT;
 }
 
+/** ######################
+ * 描述： 将“option”中的的参数对“net”进行初始化
+ * */
 void parse_net_options(list *options, network *net)
 {
     net->batch = option_find_int(options, "batch",1);
@@ -627,21 +651,33 @@ int is_network(section *s)
             || strcmp(s->type, "[network]")==0);
 }
 
-// 读取DNN配置文件
+/** #####################
+ * 读取DNN配置文件并构建网络
+ */
 network parse_network_cfg(char *filename)
 {
+    // 读取cfg文件，将所有信息存到sections
     list *sections = read_cfg(filename);
+    // 第一个节点，指向[net]
     node *n = sections->front;
     if(!n) error("Config file has no sections");
+    // 初始化网络结构 ([net]部分为全局参数，不算入network中)
     network net = make_network(sections->size - 1);
+    // GPU id
     net.gpu_index = gpu_index;
+    // 记录每层的输入(包括不同层之间共享的参数)
     size_params params;
 
+    // 获取[net]的参数,为该网络的全局参数
+    // section{type:层的类型，第一层默认为[net]/[network],options:每一层的具体参数}
     section *s = (section *)n->val;
     list *options = s->options;
     if(!is_network(s)) error("First section must be [net] or [network]");
+
+    // 读取options中“全局参数”的值到net
     parse_net_options(options, &net);
 
+    // 初始化输入层的参数
     params.h = net.h;
     params.w = net.w;
     params.c = net.c;
@@ -655,10 +691,14 @@ network parse_network_cfg(char *filename)
     int count = 0;
     free_section(s);
     fprintf(stderr, "layer     filters    size              input                output\n");
+
+    // 逐层读取参数，并打印到标准输出
     while(n){
         params.index = count;
         fprintf(stderr, "%5d ", count);
+        // section类型：{type(char):层的名称,option(list):该层参数}
         s = (section *)n->val;
+        // 当前层的所有参数
         options = s->options;
         layer l = {0};
         LAYER_TYPE lt = string_to_layer_type(s->type);
@@ -729,6 +769,8 @@ network parse_network_cfg(char *filename)
         free_section(s);
         n = n->next;
         ++count;
+
+        // 将上一层的输出作为下一层的输入
         if(n){
             params.h = l.out_h;
             params.w = l.out_w;
@@ -737,9 +779,13 @@ network parse_network_cfg(char *filename)
         }
     }
     free_list(sections);
+
     layer out = get_network_output_layer(net);
+
+    // 将输出层的地址给到 net->outputs
     net.outputs = out.outputs;
     net.truths = out.outputs;
+
     if(net.layers[net.n-1].truths) net.truths = net.layers[net.n-1].truths;
     net.output = out.output;
     net.input = calloc(net.inputs*net.batch, sizeof(float));
@@ -777,6 +823,7 @@ list *read_cfg(char *filename)
         ++ nu;
         strip(line);
         switch(line[0]){
+            // 标识一个新的层“layer”
             case '[':
                 current = malloc(sizeof(section));
                 list_insert(options, current);
@@ -788,6 +835,7 @@ list *read_cfg(char *filename)
             case ';':
                 free(line);
                 break;
+            // 读取每一层(layer)中的参数
             default:
                 if(!read_option(line, current->options)){
                     fprintf(stderr, "Config file error line %d, could parse: %s\n", nu, line);
@@ -1037,13 +1085,18 @@ void load_convolutional_weights_binary(layer l, FILE *fp)
 #endif
 }
 
+/** ##############
+ * 从 .weight 文件中读取卷积层参数加载至“network”中
+ * */
 void load_convolutional_weights(layer l, FILE *fp)
 {
+    // 实现二值网络保留的接口
     if(l.binary){
         //load_convolutional_weights_binary(l, fp);
         //return;
     }
-    int num = l.n*l.c*l.size*l.size;
+    int num = l.n*l.c*l.size*l.size;    // 参数总个数
+    // 读入 bias
     fread(l.biases, sizeof(float), l.n, fp);
     if (l.batch_normalize && (!l.dontloadscales)){
         fread(l.scales, sizeof(float), l.n, fp);
@@ -1076,6 +1129,7 @@ void load_convolutional_weights(layer l, FILE *fp)
             printf("\n");
         }
     }
+    // 读入 weights
     fread(l.weights, sizeof(float), num, fp);
     //if(l.c == 3) scal_cpu(num, 1./256, l.weights, 1);
     if (l.flipped) {
@@ -1089,7 +1143,16 @@ void load_convolutional_weights(layer l, FILE *fp)
 #endif
 }
 
-
+/** ##################
+ * 描述：将模型文件（二进制）加载至内存中
+ *
+ * 输入：
+ *      --net：network类型数据
+ *      --filename: 模型文件（二进制）
+ *      --start:
+ *      --cutoff:
+ *
+ * */
 void load_weights_upto(network *net, char *filename, int start, int cutoff)
 {
 #ifdef GPU
@@ -1180,7 +1243,9 @@ void load_weights_upto(network *net, char *filename, int start, int cutoff)
     fclose(fp);
 }
 
-// 加载“模型参数”
+/** ###########
+ * 加载“模型参数”
+ */
 void load_weights(network *net, char *filename)
 {
     load_weights_upto(net, filename, 0, net->n);

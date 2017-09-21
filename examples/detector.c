@@ -571,7 +571,16 @@ void validate_detector_recall(char *cfgfile, char *weightfile)
     }
 }
 
-// 物体检测方法入口
+/** ####################
+ * 描述：物体检测方法入口
+ * 输入：
+ *      --datacfg:数据集配置文件
+ *      --cfgfile:神经网络模型配置文件
+ *      --weightfile:网络参数存储文件
+ *      --filename:测试图片文件路径
+ *      --thresh:识别置信度
+ *
+ * */
 void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen)
 {
     // 获取模型的训练数据信息（训练集，验证集，类别总数，类别列表等）
@@ -589,6 +598,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         load_weights(&net, weightfile);
     }
 
+    // 强制每一层的 batch_size = 1
     set_batch_network(&net, 1);
 
     srand(2222222);
@@ -596,7 +606,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
     char buff[256];
     char *input = buff;
     int j;
-    float nms=.3;
+    float nms=.3;           // NMS阈值
     while(1){
         if(filename){
             strncpy(input, filename, 256);
@@ -613,9 +623,14 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         //image sized2 = resize_max(im, net.w);
         //image sized = crop_image(sized2, -((net.w - sized2.w)/2), -((net.h - sized2.h)/2), net.w, net.h);
         //resize_network(&net, sized.w, sized.h);
+
+        // 获取网络最后一层数据
         layer l = net.layers[net.n-1];
 
+        // bbox的个数 = 宽(feature-map) x 高 x anchor个数
         box *boxes = calloc(l.w*l.h*l.n, sizeof(box));
+
+        // 每个anchor对应一组probs；每一组probs有 “l.classes+1” 个
         float **probs = calloc(l.w*l.h*l.n, sizeof(float *));
         for(j = 0; j < l.w*l.h*l.n; ++j) probs[j] = calloc(l.classes + 1, sizeof(float *));
         float **masks = 0;
@@ -624,10 +639,16 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
             for(j = 0; j < l.w*l.h*l.n; ++j) masks[j] = calloc(l.coords-4, sizeof(float *));
         }
 
+        // 输入的图片数据
         float *X = sized.data;
         time=what_time_is_it_now();
+
+        // 开始检测
         network_predict(net, X);
+
         printf("%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
+
+        //
         get_region_boxes(l, im.w, im.h, net.w, net.h, thresh, probs, boxes, masks, 0, 0, hier_thresh, 1);
         if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
         //else if (nms) do_nms_sort(boxes, probs, l.w*l.h*l.n, l.classes, nms);

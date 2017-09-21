@@ -15,20 +15,20 @@ layer make_region_layer(int batch, int w, int h, int n, int classes, int coords)
     layer l = {0};
     l.type = REGION;
 
-    l.n = n;
+    l.n = n;                                            // anchor的个数（一个cell多少个box）
     l.batch = batch;
     l.h = h;
     l.w = w;
-    l.c = n*(classes + coords + 1);
+    l.c = n*(classes + coords + 1);                     // 输出通道数= anchor数*(类别+(tx,ty,tw,th)+置信度(t0))
     l.out_w = l.w;
     l.out_h = l.h;
     l.out_c = l.c;
     l.classes = classes;
-    l.coords = coords;
+    l.coords = coords;                                  // 指（tx,ty,tw,th）
     l.cost = calloc(1, sizeof(float));
-    l.biases = calloc(n*2, sizeof(float));
-    l.bias_updates = calloc(n*2, sizeof(float));
-    l.outputs = h*w*n*(classes + coords + 1);
+    l.biases = calloc(n*2, sizeof(float));              // box长宽的偏置
+    l.bias_updates = calloc(n*2, sizeof(float));        // box长宽偏置的更新值
+    l.outputs = h*w*n*(classes + coords + 1);           // feature-map大小 * l.c
     l.inputs = l.outputs;
     l.truths = 30*(l.coords + 1);
     l.delta = calloc(batch*l.outputs, sizeof(float));

@@ -4,9 +4,15 @@
 #include "option_list.h"
 #include "utils.h"
 
-// 描述：读取数据集相关的信息（路径，类别等）
-// 输入：文件名
-// 输出：list
+
+
+
+
+/** #################
+ * 描述：读取".cfg"类型文件
+ * 输入：文件名
+ * 输出：list
+ */
 list *read_data_cfg(char *filename)
 {
     FILE *file = fopen(filename, "r");
@@ -52,6 +58,7 @@ metadata get_metadata(char *file)
     return m;
 }
 
+// .cfg 文件中，遇到 “=” 则将数组读入
 int read_option(char *s, list *options)
 {
     size_t i;
@@ -59,12 +66,14 @@ int read_option(char *s, list *options)
     char *val = 0;
     for(i = 0; i < len; ++i){
         if(s[i] == '='){
-            s[i] = '\0';
+            s[i] = '\0';// 将“=”左右分割
             val = s+i+1;
             break;
         }
     }
+    // 未发现“=”，则跳过；
     if(i == len-1) return 0;
+    // 否则，将值存到option中
     char *key = s;
     option_insert(options, key, val);
     return 1;

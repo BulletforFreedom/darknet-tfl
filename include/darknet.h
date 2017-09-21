@@ -51,10 +51,16 @@ typedef struct{
     int *group_offset;
 } tree;
 
+/**
+ * Activation Function
+ * */
 typedef enum{
     LOGISTIC, RELU, RELIE, LINEAR, RAMP, TANH, PLSE, LEAKY, ELU, LOGGY, STAIR, HARDTAN, LHTAN
 } ACTIVATION;
 
+/**
+ * Layers
+ * */
 typedef enum {
     CONVOLUTIONAL,
     DECONVOLUTIONAL,
@@ -83,6 +89,9 @@ typedef enum {
     BLANK
 } LAYER_TYPE;
 
+/**
+ * Loss Functions
+ * */
 typedef enum{
     SSE, MASKED, L1, SEG, SMOOTH
 } COST_TYPE;
@@ -120,24 +129,24 @@ struct layer{
     int batch;
     int forced;
     int flipped;
-    int inputs;
-    int outputs;
-    int nweights;
-    int nbiases;
+    int inputs;                 // 输入feature总大小：h*w*c
+    int outputs;                // 输出feature总大小：out_h*out_w*out_c
+    int nweights;               // weight 总个数
+    int nbiases;                // bias 总个数
     int extra;
     int truths;
-    int h,w,c;
-    int out_h, out_w, out_c;
-    int n;
+    int h,w,c;                  // 输入：高（行），宽（列），通道（filter）
+    int out_h, out_w, out_c;    // 输出：高（行），宽（列），通道（filter）
+    int n;                      // 不同的layer中这个参数的意义不一样；卷积层--number of filters
     int max_boxes;
     int groups;
-    int size;
+    int size;                   // size of filters
     int side;
-    int stride;
+    int stride;                 // strides
     int reverse;
     int flatten;
     int spatial;
-    int pad;
+    int pad;                    // pad=0,则padding的值由padding的输入参数决定；pad=1，则padding=size/2；
     int sqrt;
     int flip;
     int index;
@@ -185,7 +194,7 @@ struct layer{
 
     int onlyforward;
     int stopbackward;
-    int dontload;
+    int dontload;              // 该层参数是否要读取/加载：1--不加载；0--加载；
     int dontloadscales;
 
     float temperature;
@@ -212,17 +221,17 @@ struct layer{
 
     float * binary_weights;
 
-    float * biases;
+    float * biases;             // 卷积核的bias(float[])
     float * bias_updates;
 
     float * scales;
     float * scale_updates;
 
-    float * weights;
+    float * weights;            // 卷积核权值(float[])
     float * weight_updates;
 
-    float * delta;
-    float * output;
+    float * delta;              // back-propagate 的梯度(float[])
+    float * output;             // 输出的feature（float[]）
     float * squared;
     float * norms;
 
@@ -408,24 +417,27 @@ typedef enum {
     CONSTANT, STEP, EXP, POLY, STEPS, SIG, RANDOM
 } learning_rate_policy;
 
+/** ###########
+ * 定义DNN网络
+ * */
 typedef struct network{
-    int n;
-    int batch;
+    int n;                      // 层数
+    int batch;                  // batch_size
     size_t *seen;
     int *t;
     float epoch;
-    int subdivisions;
+    int subdivisions;           // 对 net->batch 再次细分；使得net->batch = net->batch/net->subdivision;
     layer *layers;
     float *output;
     learning_rate_policy policy;
 
-    float learning_rate;
-    float momentum;
-    float decay;
+    float learning_rate;        // base_lr
+    float momentum;             // momentum
+    float decay;                // weight_decay
     float gamma;
     float scale;
     float power;
-    int time_steps;
+    int time_steps;             // ????,只知道与batch相关
     int step;
     int max_batches;
     float *scales;
@@ -433,12 +445,12 @@ typedef struct network{
     int num_steps;
     int burn_in;
 
-    int adam;
+    int adam;                   // 1:使用Adam更新参数；0：不用
     float B1;
     float B2;
     float eps;
 
-    int inputs;
+    int inputs;                 // 输入数据的尺寸
     int outputs;
     int truths;
     int notruth;
@@ -455,12 +467,12 @@ typedef struct network{
     int gpu_index;
     tree *hierarchy;
 
-    float *input;
+    float *input;               // 输入数据的值 float[]
     float *truth;
     float *delta;
     float *workspace;
     int train;
-    int index;
+    int index;                  // 记录网络当前计算到的层数
     float *cost;
 
 #ifdef GPU
@@ -482,6 +494,7 @@ typedef struct {
     float aspect;
 } augment_args;
 
+// 图片类型的数据
 typedef struct {
     int w;
     int h;
@@ -558,12 +571,14 @@ load_args get_base_args(network net);
 
 void free_data(data d);
 
+// 定义节点：（1）值；（2）上一个节点;（3）下一个节点；
 typedef struct node{
-    void *val;
+    void *val;  // 空指针，可以存任意类型的数据
     struct node *next;
     struct node *prev;
 } node;
 
+// 定义一个双向链表：（1）表长；（2）表头；（3）表尾
 typedef struct list{
     int size;
     node *front;
