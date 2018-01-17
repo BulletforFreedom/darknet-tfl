@@ -3,6 +3,7 @@ import pickle
 import os
 from os import listdir, getcwd
 from os.path import join
+import pdb
 
 sets=[('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
 
@@ -60,9 +61,12 @@ for year, image_set in sets:
     list_file = open(list_file_path, 'w')
 
     for image_id in image_ids:
+	print 'VOC%s_%s_%s'%(year, image_set, image_id)
+
         list_file.write('%s/VOCdevkit/VOC%s/JPEGImages/%s.jpg\n'%(wd, year, image_id))
         convert_annotation(wd, year, image_id)
     list_file.close()
+    #pdb.set_trace()
 
 #os.system("cat 2007_train.txt 2007_val.txt 2012_train.txt 2012_val.txt > %s/train.txt")
 #os.system("cat 2007_train.txt 2007_val.txt 2007_test.txt 2012_train.txt 2012_val.txt > train.all.txt")
