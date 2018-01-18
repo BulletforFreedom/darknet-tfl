@@ -426,7 +426,10 @@ typedef struct network{
     size_t *seen;
     int *t;
     float epoch;
-    int subdivisions;           // 对 net->batch 再次细分；使得net->batch = net->batch/net->subdivision;
+    int subdivisions;           // 对 net->batch 再次细分；使得net->batch（new） = net->batch（old）/net->subdivision;
+                                // 目的：使得实际运行的时候，GPU每次做 net->batch（new） 的运算，
+                                // 但是进行 net->batch（old）之后才做 BP，
+                                // 在保证batch_size 的基础上节省每次运算的显存消耗（针对小显存的解决方案）；
     layer *layers;
     float *output;
     learning_rate_policy policy;

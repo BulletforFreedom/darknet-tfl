@@ -20,6 +20,10 @@ double what_time_is_it_now()
     return now.tv_sec + now.tv_nsec*1e-9;
 }
 
+/**
+ * 将 -gpus 中的参数逐个读取入 一个 "int[]"
+ * "gpu_list"一定是 0,1,2,3... ... 这样的结构
+ * */
 int *read_intlist(char *gpu_list, int *ngpus, int d)
 {
     int *gpus = 0;
@@ -81,6 +85,9 @@ void shuffle(void *arr, size_t n, size_t size)
     }
 }
 
+/**
+ * 删除输入参数中的第 “index” 个参数
+ * */
 void del_arg(int argc, char **argv, int index)
 {
     int i;
@@ -88,6 +95,9 @@ void del_arg(int argc, char **argv, int index)
     argv[i] = 0;
 }
 
+/**
+ * 从函数输入参数中找“字符串型参数（不带参数值）”（例子：参数名(char)）
+ * */
 int find_arg(int argc, char* argv[], char *arg)
 {
     int i;
@@ -101,6 +111,9 @@ int find_arg(int argc, char* argv[], char *arg)
     return 0;
 }
 
+/**
+ * 从函数输入参数中找“整型参数”（例子：参数名(char) 参数值(int)）
+ * */
 int find_int_arg(int argc, char **argv, char *arg, int def)
 {
     int i;
@@ -116,6 +129,9 @@ int find_int_arg(int argc, char **argv, char *arg, int def)
     return def;
 }
 
+/**
+ * 从函数输入参数中找“浮点型参数”（例子：参数名(char) 参数值(float)）
+ * */
 float find_float_arg(int argc, char **argv, char *arg, float def)
 {
     int i;
@@ -131,6 +147,11 @@ float find_float_arg(int argc, char **argv, char *arg, float def)
     return def;
 }
 
+/**
+ * 从函数输入参数中找”字符串类型的参数“（例子：参数名(char) 参数值(float)）
+ * （1）找到函数输入参数名称中值为 “arg” 的参数并返回该参数
+ * （2）返回之前，将输入参数中该 “参数名称和参数” 删除
+ * */
 char *find_char_arg(int argc, char **argv, char *arg, char *def)
 {
     int i;
@@ -138,8 +159,8 @@ char *find_char_arg(int argc, char **argv, char *arg, char *def)
         if(!argv[i]) continue;
         if(0==strcmp(argv[i], arg)){
             def = argv[i+1];
-            del_arg(argc, argv, i);
-            del_arg(argc, argv, i);
+            del_arg(argc, argv, i); // 删除参数名称
+            del_arg(argc, argv, i); // 删除参数值
             break;
         }
     }

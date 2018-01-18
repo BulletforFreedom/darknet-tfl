@@ -15,6 +15,10 @@ float *get_regression_values(char **labels, int n)
     return v;
 }
 
+/**
+ * 训练分类器
+ * 
+ * */
 void train_classifier(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear)
 {
     int i;
@@ -1095,7 +1099,10 @@ void demo_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_ind
 #endif
 }
 
-
+/**
+ * 分类器相关的操作，包括分类器的训练测试等
+ *
+ * */
 void run_classifier(int argc, char **argv)
 {
     if(argc < 4){
@@ -1111,9 +1118,9 @@ void run_classifier(int argc, char **argv)
     int cam_index = find_int_arg(argc, argv, "-c", 0);
     int top = find_int_arg(argc, argv, "-t", 0);
     int clear = find_arg(argc, argv, "-clear");
-    char *data = argv[3];
-    char *cfg = argv[4];
-    char *weights = (argc > 5) ? argv[5] : 0;
+    char *data = argv[3];   // 训练数据类别
+    char *cfg = argv[4];    // 模型结构配置文件
+    char *weights = (argc > 5) ? argv[5] : 0;   // 模型权值(train/test) or 权值的存储路径(train)?????
     char *filename = (argc > 6) ? argv[6]: 0;
     char *layer_s = (argc > 7) ? argv[7]: 0;
     int layer = layer_s ? atoi(layer_s) : -1;
