@@ -1,6 +1,6 @@
 #ifndef ACTIVATIONS_H
 #define ACTIVATIONS_H
-#include "darknet.h"
+#include "../include/darknet.h"
 #include "cuda.h"
 #include "math.h"
 

@@ -2,7 +2,7 @@
 #define UTILS_H
 #include <stdio.h>
 #include <time.h>
-#include "darknet.h"
+#include "../include/darknet.h"
 #include "list.h"
 
 #define TIME(a) \
