@@ -13,7 +13,9 @@ def sample(probs):
     return len(probs)-1
 
 def c_array(ctype, values):
-    return (ctype * len(values))(*values)
+    arr = (ctype*len(values))()
+    arr[:] = values
+    return arr
 
 class BOX(Structure):
     _fields_ = [("x", c_float),
@@ -31,6 +33,8 @@ class METADATA(Structure):
     _fields_ = [("classes", c_int),
                 ("names", POINTER(c_char_p))]
 
+    
+
 #lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
 lib = CDLL("libdarknet.so", RTLD_GLOBAL)
 lib.network_width.argtypes = [c_void_p]
@@ -38,9 +42,16 @@ lib.network_width.restype = c_int
 lib.network_height.argtypes = [c_void_p]
 lib.network_height.restype = c_int
 
-predict = lib.network_predict_p
+predict = lib.network_predict
 predict.argtypes = [c_void_p, POINTER(c_float)]
 predict.restype = POINTER(c_float)
+
+set_gpu = lib.cuda_set_device
+set_gpu.argtypes = [c_int]
+
+make_image = lib.make_image
+make_image.argtypes = [c_int, c_int, c_int]
+make_image.restype = IMAGE
 
 make_boxes = lib.make_boxes
 make_boxes.argtypes = [c_void_p]
@@ -57,13 +68,13 @@ make_probs = lib.make_probs
 make_probs.argtypes = [c_void_p]
 make_probs.restype = POINTER(POINTER(c_float))
 
-detect = lib.network_predict_p
+detect = lib.network_predict
 detect.argtypes = [c_void_p, IMAGE, c_float, c_float, c_float, POINTER(BOX), POINTER(POINTER(c_float))]
 
 reset_rnn = lib.reset_rnn
 reset_rnn.argtypes = [c_void_p]
 
-load_net = lib.load_network_p
+load_net = lib.load_network
 load_net.argtypes = [c_char_p, c_char_p, c_int]
 load_net.restype = c_void_p
 
@@ -81,6 +92,9 @@ lib.get_metadata.restype = METADATA
 load_image = lib.load_image_color
 load_image.argtypes = [c_char_p, c_int, c_int]
 load_image.restype = IMAGE
+
+rgbgr_image = lib.rgbgr_image
+rgbgr_image.argtypes = [IMAGE]
 
 predict_image = lib.network_predict_image
 predict_image.argtypes = [c_void_p, IMAGE]

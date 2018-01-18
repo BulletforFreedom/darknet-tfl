@@ -19,11 +19,7 @@ static int demo_classes;
 
 static float **probs;
 static box *boxes;
-static network net;
-static network net2;
-static float **probs2;
-static box *boxes2;
-static float **predictions2;
+static network *net;
 static image buff [3];
 static image buff_letter[3];
 static int buff_index = 0;
@@ -42,21 +38,12 @@ static int demo_done = 0;
 static float *avg;
 double demo_time;
 
-double get_wall_time()
-{
-    struct timeval time;
-    if (gettimeofday(&time,NULL)){
-        return 0;
-    }
-    return (double)time.tv_sec + (double)time.tv_usec * .000001;
-}
-
 void *detect_in_thread(void *ptr)
 {
     running = 1;
     float nms = .4;
 
-    layer l = net.layers[net.n-1];
+    layer l = net->layers[net->n-1];
     float *X = buff_letter[(buff_index+2)%3].data;
     float *prediction = network_predict(net, X);
 
@@ -66,7 +53,7 @@ void *detect_in_thread(void *ptr)
     if(l.type == DETECTION){
         get_detection_boxes(l, 1, 1, demo_thresh, probs, boxes, 0);
     } else if (l.type == REGION){
-        get_region_boxes(l, buff[0].w, buff[0].h, net.w, net.h, demo_thresh, probs, boxes, 0, 0, 0, demo_hier, 1);
+        get_region_boxes(l, buff[0].w, buff[0].h, net->w, net->h, demo_thresh, probs, boxes, 0, 0, 0, demo_hier, 1);
     } else {
         error("Last layer must produce detections\n");
     }
@@ -87,7 +74,7 @@ void *detect_in_thread(void *ptr)
 void *fetch_in_thread(void *ptr)
 {
     int status = fill_image_from_stream(cap, buff[buff_index]);
-    letterbox_image_into(buff[buff_index], net.w, net.h, buff_letter[buff_index]);
+    letterbox_image_into(buff[buff_index], net->w, net->h, buff_letter[buff_index]);
     if(status == 0) demo_done = 1;
     return 0;
 }
@@ -139,11 +126,8 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
     demo_thresh = thresh;
     demo_hier = hier;
     printf("Demo\n");
-    net = parse_network_cfg(cfgfile);
-    if(weightfile){
-        load_weights(&net, weightfile);
-    }
-    set_batch_network(&net, 1);
+    net = load_network(cfgfile, weightfile, 0);
+    set_batch_network(net, 1);
     pthread_t detect_thread;
     pthread_t fetch_thread;
 
@@ -168,7 +152,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
     if(!cap) error("Couldn't connect to webcam.\n");
 
-    layer l = net.layers[net.n-1];
+    layer l = net->layers[net->n-1];
     demo_detections = l.n*l.w*l.h;
     int j;
 
@@ -182,9 +166,9 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
     buff[0] = get_image_from_stream(cap);
     buff[1] = copy_image(buff[0]);
     buff[2] = copy_image(buff[0]);
-    buff_letter[0] = letterbox_image(buff[0], net.w, net.h);
-    buff_letter[1] = letterbox_image(buff[0], net.w, net.h);
-    buff_letter[2] = letterbox_image(buff[0], net.w, net.h);
+    buff_letter[0] = letterbox_image(buff[0], net->w, net->h);
+    buff_letter[1] = letterbox_image(buff[0], net->w, net->h);
+    buff_letter[2] = letterbox_image(buff[0], net->w, net->h);
     ipl = cvCreateImage(cvSize(buff[0].w,buff[0].h), IPL_DEPTH_8U, buff[0].c);
 
     int count = 0;
@@ -198,15 +182,15 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
         }
     }
 
-    demo_time = get_wall_time();
+    demo_time = what_time_is_it_now();
 
     while(!demo_done){
         buff_index = (buff_index + 1) %3;
         if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
         if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
         if(!prefix){
-            fps = 1./(get_wall_time() - demo_time);
-            demo_time = get_wall_time();
+            fps = 1./(what_time_is_it_now() - demo_time);
+            demo_time = what_time_is_it_now();
             display_in_thread(0);
         }else{
             char name[256];
@@ -231,7 +215,7 @@ void demo_compare(char *cfg1, char *weight1, char *cfg2, char *weight2, float th
     demo_hier = hier;
     printf("Demo\n");
     net = load_network(cfg1, weight1, 0);
-    set_batch_network(&net, 1);
+    set_batch_network(net, 1);
     pthread_t detect_thread;
     pthread_t fetch_thread;
 
@@ -256,7 +240,7 @@ void demo_compare(char *cfg1, char *weight1, char *cfg2, char *weight2, float th
 
     if(!cap) error("Couldn't connect to webcam.\n");
 
-    layer l = net.layers[net.n-1];
+    layer l = net->layers[net->n-1];
     demo_detections = l.n*l.w*l.h;
     int j;
 
@@ -270,9 +254,9 @@ void demo_compare(char *cfg1, char *weight1, char *cfg2, char *weight2, float th
     buff[0] = get_image_from_stream(cap);
     buff[1] = copy_image(buff[0]);
     buff[2] = copy_image(buff[0]);
-    buff_letter[0] = letterbox_image(buff[0], net.w, net.h);
-    buff_letter[1] = letterbox_image(buff[0], net.w, net.h);
-    buff_letter[2] = letterbox_image(buff[0], net.w, net.h);
+    buff_letter[0] = letterbox_image(buff[0], net->w, net->h);
+    buff_letter[1] = letterbox_image(buff[0], net->w, net->h);
+    buff_letter[2] = letterbox_image(buff[0], net->w, net->h);
     ipl = cvCreateImage(cvSize(buff[0].w,buff[0].h), IPL_DEPTH_8U, buff[0].c);
 
     int count = 0;
@@ -286,15 +270,15 @@ void demo_compare(char *cfg1, char *weight1, char *cfg2, char *weight2, float th
         }
     }
 
-    demo_time = get_wall_time();
+    demo_time = what_time_is_it_now();
 
     while(!demo_done){
         buff_index = (buff_index + 1) %3;
         if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
         if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
         if(!prefix){
-            fps = 1./(get_wall_time() - demo_time);
-            demo_time = get_wall_time();
+            fps = 1./(what_time_is_it_now() - demo_time);
+            demo_time = what_time_is_it_now();
             display_in_thread(0);
         }else{
             char name[256];
