@@ -2,21 +2,40 @@
 
 static int coco_ids[] = {1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90};
 
+/**
+ * Train/Fine-tune A Detector
+ * :param datacfg: 数据文件
+ * :param cfgfile: 网络结构文件
+ * :param weightfile: 权值
+ * :param gpus: 占用的GPU
+ * :param ngpus: 占用的GPU的个数
+ * :param clear:
+ *
+ * :return :
+ * */
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear)
 {
+    // 解析数据配置文件“data.cfg”
     list *options = read_data_cfg(datacfg);
+    // 训练数据路径
     char *train_images = option_find_str(options, "train", "data/train.list");
+    // 结果保存路径
     char *backup_directory = option_find_str(options, "backup", "/backup/");
 
     srand(time(0));
+    // 获取网络配置文件“.cfg”的文件名,用于最终结果保存时候的文件命名
     char *base = basecfg(cfgfile);
     printf("%s\n", base);
+
     float avg_loss = -1;
+
+    // 有多少个激活的GPU，就初始化对应数量的网络配置文件
     network **nets = calloc(ngpus, sizeof(network));
 
     srand(time(0));
     int seed = rand();
     int i;
+
     for(i = 0; i < ngpus; ++i){
         srand(seed);
 #ifdef GPU
@@ -563,13 +582,14 @@ void validate_detector_recall(char *cfgfile, char *weightfile)
 }
 
 /** ####################
- * 描述：物体检测方法入口
+ * 描述：物体检测(Testing)方法入口
  * 输入：
- *      --datacfg:数据集配置文件
- *      --cfgfile:神经网络模型配置文件
- *      --weightfile:网络参数存储文件
- *      --filename:测试图片文件路径
- *      --thresh:识别置信度
+ * :param datacfg:数据集配置文件
+ * :param cfgfile:神经网络模型配置文件
+ * :param weightfile:网络参数存储文件
+ * :param filename:测试图片文件路径
+ * :param thresh:识别置信度
+ *
  *
  * */
 void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen)
@@ -685,7 +705,7 @@ void run_detector(int argc, char **argv)
     int gpu = 0;
     int ngpus = 0;
     if(gpu_list){
-        printf("%s\n", gpu_list);
+        printf("\nGPU_list:%s\n", gpu_list);
         int len = strlen(gpu_list);
         ngpus = 1;
         int i;

@@ -656,7 +656,11 @@ int is_network(section *s)
 }
 
 /** #####################
- * 读取DNN配置文件并构建网络
+ * 解析DNN配置文件(.cfg)并构建网络
+ *
+ * :param filename: .cfg文件路径
+ * :return:
+ *      Network(type struct)
  */
 network *parse_network_cfg(char *filename)
 {

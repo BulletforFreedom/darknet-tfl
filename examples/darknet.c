@@ -426,6 +426,7 @@ int main(int argc, char **argv)
     } else if (0 == strcmp(argv[1], "lsd")){
         run_lsd(argc, argv);
     } else if (0 == strcmp(argv[1], "detector")){
+        // 训练或者测试 “检测器”
         run_detector(argc, argv);
     } else if (0 == strcmp(argv[1], "detect")){
         // 检测阈值

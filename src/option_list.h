@@ -2,6 +2,13 @@
 #define OPTION_LIST_H
 #include "list.h"
 
+/**
+ * 描述：存储键值对
+ *
+ * :param key:
+ * :param val:
+ * :param used: (default 0) 记录该键值对是否已经被读取--0:已经读取,--1:未读取；
+ * */
 typedef struct{
     char *key;
     char *val;
