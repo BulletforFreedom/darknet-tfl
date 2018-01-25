@@ -51,8 +51,8 @@ load_args get_base_args(network *net)
 /** ##############
  * 加载网络结构和权值
  *
- * :param cfg: 网络结构配置文件
- * :param weights: 权值
+ * :param cfg: 网络结构配置文件路径
+ * :param weights: 权值文件路径
  * :param clear:
  * :return:
  * */

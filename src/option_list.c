@@ -98,6 +98,9 @@ void option_insert(list *l, char *key, char *val)
     list_insert(l, p);
 }
 
+/**
+ * 描述：在终端打印出未使用的参数
+ * */
 void option_unused(list *l)
 {
     node *n = l->front;

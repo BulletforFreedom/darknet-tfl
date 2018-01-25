@@ -658,6 +658,26 @@ int is_network(section *s)
 /** #####################
  * 解析DNN配置文件(.cfg)并构建网络
  *
+ * sections的结构如下：
+ *      sections(list)
+ *          ->size(int)
+ *          ->front(node)
+ *          ->back(node)
+ *                ->prev
+ *                ->next
+ *                ->val(*void)-->section(section)   #每一层就是一个section
+ *                                  ->type(char)    #该层名称
+ *                                  ->options(list) #该层相关的参数
+ *                                      ->size(int)
+ *                                      ->front(node)
+ *                                      ->back(node)
+ *                                          ->prev
+ *                                          ->next
+ *                                          ->val-->kvp(kvp)
+ *                                                      ->key(char) #参数名
+ *                                                      ->val(char) #参数值
+ *                                                      ->used(int) #参数是否被读取(初始值0)
+ *
  * :param filename: .cfg文件路径
  * :return:
  *      Network(type struct)
@@ -668,14 +688,13 @@ network *parse_network_cfg(char *filename)
     list *sections = read_cfg(filename);
     // 第一个节点，指向[net]
     node *n = sections->front;
-    if(!n) error("Config file has no sections");
+    if(!n) error("Config file has no [net] sections");
     // 初始化网络结构 ([net]部分为全局参数，不算入network中)
     network *net = make_network(sections->size - 1);
-    // GPU id
-    net->gpu_index = gpu_index;
-    // 记录每层的输入(包括不同层之间共享的参数)
 
-    size_params params;
+    net->gpu_index = gpu_index;     // GPU id
+
+    size_params params;     // 不同层之间共享的参数
 
     // 获取[net]的参数,为该网络的全局参数
     // section{type:层的类型，第一层默认为[net]/[network],options:每一层的具体参数}
@@ -683,10 +702,10 @@ network *parse_network_cfg(char *filename)
     list *options = s->options;
     if(!is_network(s)) error("First section must be [net] or [network]");
 
-    // 读取options中“全局参数”的值到net
+    // 将[net]中“全局参数”读取到net
     parse_net_options(options, net);
 
-    // 初始化输入层的参数
+    // 初始化共享参数(不同层之间参数共享)
     params.h = net->h;
     params.w = net->w;
     params.c = net->c;
@@ -697,6 +716,8 @@ network *parse_network_cfg(char *filename)
     params.net = net;
 
     size_t workspace_size = 0;
+
+    // 得到网络第一层
     n = n->next;
     int count = 0;
     free_section(s);
@@ -790,6 +811,7 @@ network *parse_network_cfg(char *filename)
     }
     free_list(sections);
 
+    // 找到COST层
     layer out = get_network_output_layer(net);
 
     // 将输出层的地址给到 net->outputs
@@ -821,6 +843,11 @@ network *parse_network_cfg(char *filename)
     return net;
 }
 
+/**
+ * 描述：解析网络配置文件，将文件内容存至双链表中
+ * :return :
+ *      list{section{list}}
+ * */
 // 解析“.cfg”文件
 list *read_cfg(char *filename)
 {
@@ -838,8 +865,8 @@ list *read_cfg(char *filename)
             case '[':
                 current = malloc(sizeof(section));
                 list_insert(options, current);
-                current->options = make_list();
-                current->type = line;
+                current->options = make_list();    // layer的所有信息
+                current->type = line;   // layer的名称
                 break;
             case '\0':
             case '#':
@@ -1157,12 +1184,14 @@ void load_convolutional_weights(layer l, FILE *fp)
 
 /** ##################
  * 描述：将模型文件（二进制）加载至内存中
+ *      只加载 [start cutoff] 之间的层的数据
+ *
  *
  * 输入：
- *      --net：network类型数据
- *      --filename: 模型文件（二进制）
- *      --start:
- *      --cutoff:
+ * :param net: network类型数据
+ * :param filename: 模型文件路径
+ * :param start: 起始层
+ * :param cutoff: 结束层
  *
  * */
 void load_weights_upto(network *net, char *filename, int start, int cutoff)

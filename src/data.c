@@ -1058,7 +1058,7 @@ void *load_threads(void *ptr)
     pthread_t *threads = calloc(args.threads, sizeof(pthread_t));
     for(i = 0; i < args.threads; ++i){
         args.d = buffers + i;
-        args.n = (i+1) * total/args.threads - i * total/args.threads;
+        args.n = (i+1) * total/args.threads - i * total/args.threads;   // 重新计算每个线程需要加载的图片数
         threads[i] = load_data_in_thread(args);
     }
     for(i = 0; i < args.threads; ++i){
@@ -1082,6 +1082,15 @@ void load_data_blocking(load_args args)
     load_thread(ptr);
 }
 
+/**
+ * 描述：创建一个输入数据读取的异步线程，返回线程号
+ *
+ * :param args: (type load_args)输入数据相关参数
+ *
+ * :return thread:
+ *      (type pthread_t)thread
+ *
+ * */
 pthread_t load_data(load_args args)
 {
     pthread_t thread;

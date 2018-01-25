@@ -155,7 +155,7 @@ struct layer{
     int sqrt;
     int flip;
     int index;
-    int binary;
+    int binary;                 // 是否为二值网络
     int xnor;
     int steps;
     int hidden;
@@ -426,8 +426,8 @@ typedef enum {
  * 定义DNN网络
  * */
 typedef struct network{
-    int n;                      // 层数
-    int batch;                  // batch_size
+    int n;                      // 网络总层数,不包括 [net]
+    int batch;                  // batch_size; 此为做过subdivision之后的 batch_size,主要考虑多GPU时数据的分配
     size_t *seen;
     int *t;
     float epoch;
@@ -435,22 +435,22 @@ typedef struct network{
                                 // 目的：使得实际运行的时候，GPU每次做 net->batch（new） 的运算，
                                 // 但是进行 net->batch（old）之后才做 BP，
                                 // 在保证batch_size 的基础上节省每次运算的显存消耗（针对小显存的解决方案）；
-    layer *layers;
-    float *output;
+    layer *layers;              // 所有层的完整信息存储于此
+    float *output;              // 网络最终输出 float[]
     learning_rate_policy policy;
 
     float learning_rate;        // base_lr
     float momentum;             // momentum
     float decay;                // weight_decay
     float gamma;
-    float scale;
+    float scale;                // 当net->policy=STEP，存储lr变化尺度
     float power;
     int time_steps;             // ????,只知道与batch相关
-    int step;
+    int step;                   // 当net->policy=STEP，存储lr变化的batch数
     int max_batches;
-    float *scales;
-    int   *steps;
-    int num_steps;
+    float *scales;              // 当net->policy=STEPS，存储lr变化的batch数
+    int   *steps;               // 当net->policy=STEPS，存储lr变化的尺度
+    int num_steps;              // 当net->policy=STEPS，存储lr变化的总次数
     int burn_in;
 
     int adam;                   // 1:使用Adam更新参数；0：不用
@@ -458,11 +458,11 @@ typedef struct network{
     float B2;
     float eps;
 
-    int inputs;                 // 输入数据的尺寸
+    int inputs;                 // 输入数据的尺寸 h*w*c
     int outputs;
     int truths;
     int notruth;
-    int h, w, c;
+    int h, w, c;                // 输入数据的高，宽，通道数
     int max_crop;
     int min_crop;
     float max_ratio;
@@ -479,7 +479,7 @@ typedef struct network{
     tree *hierarchy;
 
     float *input;               // 输入数据的值 float[]
-    float *truth;
+    float *truth;               // 输入数据的Label float[]
     float *delta;
     float *workspace;
     int train;
@@ -536,12 +536,15 @@ typedef enum {
     CLASSIFICATION_DATA, DETECTION_DATA, CAPTCHA_DATA, REGION_DATA, IMAGE_DATA, COMPARE_DATA, WRITING_DATA, SWAG_DATA, TAG_DATA, OLD_CLASSIFICATION_DATA, STUDY_DATA, DET_DATA, SUPER_DATA, LETTERBOX_DATA, REGRESSION_DATA, SEGMENTATION_DATA, INSTANCE_DATA
 } data_type;
 
+/**
+ * 网络输入相关参数
+ * */
 typedef struct load_args{
-    int threads;
-    char **paths;
+    int threads;        // 开启的数据读取的线程数量
+    char **paths;       // 数据路径
     char *path;
-    int n;
-    int m;
+    int n;              // 每次加载的图片数（batch_size*subdivision*ngpu）
+    int m;              // 所有输入图片数量
     char **labels;
     int h;
     int w;
@@ -562,7 +565,7 @@ typedef struct load_args{
     float saturation;
     float exposure;
     float hue;
-    data *d;
+    data *d;            // 存储读取到的数据
     image *im;
     image *resized;
     data_type type;

@@ -51,15 +51,19 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
     printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net->learning_rate, net->momentum, net->decay);
     data train, buffer;
 
+    // 获取最后一层
     layer l = net->layers[net->n - 1];
 
     int classes = l.classes;
     float jitter = l.jitter;
 
+    // 当前所有训练样本的路径
     list *plist = get_paths(train_images);
+
     //int N = plist->size;
     char **paths = (char **)list_to_array(plist);
 
+    // 初始化网络输入数据相关的参数
     load_args args = get_base_args(net);
     args.coords = l.coords;
     args.paths = paths;
