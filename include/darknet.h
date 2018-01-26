@@ -428,7 +428,7 @@ typedef enum {
 typedef struct network{
     int n;                      // 网络总层数,不包括 [net]
     int batch;                  // batch_size; 此为做过subdivision之后的 batch_size,主要考虑多GPU时数据的分配
-    size_t *seen;
+    size_t *seen;               // 记录当前GPU已经处理的图片总数，用来计算当前已经进行到的batch数目，用来判断训练是否需要停止
     int *t;
     float epoch;
     int subdivisions;           // 对 net->batch 再次细分；使得net->batch（new） = net->batch（old）/net->subdivision;

@@ -83,8 +83,10 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
     //while(i*imgs < N*120){
     while(get_current_batch(net) < net->max_batches){
         if(l.random && count++%10 == 0){
+            // 每10个batch对重新定义输入图片的宽高
+            // 实现 multi-scale training
             printf("Resizing\n");
-            int dim = (rand() % 10 + 10) * 32;
+            int dim = (rand() % 10 + 10) * 32;      // dim范围[320 608]
             if (get_current_batch(net)+200 > net->max_batches) dim = 608;
             //int dim = (rand() % 4 + 16) * 32;
             printf("%d\n", dim);

@@ -165,6 +165,10 @@ box_label *read_boxes(char *filename, int *n)
     return boxes;
 }
 
+/**
+ * 描述：将来自同一张图片的BB的顺序打乱
+ *
+ * */
 void randomize_boxes(box_label *b, int n)
 {
     int i;
@@ -954,18 +958,26 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int boxes, in
 
     d.y = make_matrix(n, 5*boxes);
     for(i = 0; i < n; ++i){
+        // orig为输入图片；sized为最终的图片；以下先生成一张空图片，然后附上初值0.5
         image orig = load_image_color(random_paths[i], 0, 0);
         image sized = make_image(w, h, orig.c);
         fill_image(sized, .5);
 
+        // 数据增强，为图片宽度和高度增加“抖动”（jitter）
+        // 目的在于下一行，改变图片的ratio
         float dw = jitter * orig.w;
         float dh = jitter * orig.h;
 
+        // 计算新的宽高比（ratio）
         float new_ar = (orig.w + rand_uniform(-dw, dw)) / (orig.h + rand_uniform(-dh, dh));
+
+        // 数据增强，对图片宽高进行尺度变换，缩放比例为[0.25,2]之间的随机数
         float scale = rand_uniform(.25, 2);
 
+        // 增强操作后图片的宽和高
         float nw, nh;
 
+        // 先尺度变换后进行ratio的变化
         if(new_ar < 1){
             nh = scale * h;
             nw = nh * new_ar;
@@ -974,6 +986,8 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int boxes, in
             nh = nw / new_ar;
         }
 
+        // 数据增强，sized在“增强后图片”上采样的便宜亮
+        // 相当于给图片增加x,y方向的偏移量
         float dx = rand_uniform(0, w - nw);
         float dy = rand_uniform(0, h - nh);
 
