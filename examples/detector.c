@@ -42,6 +42,8 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
         cuda_set_device(gpus[i]);
 #endif
         nets[i] = load_network(cfgfile, weightfile, clear);
+        // 本质为batch_size越大，学习率越大;
+        // 相关论文“Training ImageNet in 1 hour”
         nets[i]->learning_rate *= ngpus;
     }
     srand(time(0));

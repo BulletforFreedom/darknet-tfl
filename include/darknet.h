@@ -427,14 +427,19 @@ typedef enum {
  * */
 typedef struct network{
     int n;                      // 网络总层数,不包括 [net]
-    int batch;                  // batch_size; 此为做过subdivision之后的 batch_size,主要考虑多GPU时数据的分配
+    int batch;                  // one_gpu_one_forward_batch_size;此为每块GPU单独的batch_size；
+                                // 当使用多块GPU(如:N)时,总的 tot_batch_size = N*batch_size
+                                // 此后还需做subdivision,得到最终一次forward的batch_size;
+
     size_t *seen;               // 记录当前GPU已经处理的图片总数，用来计算当前已经进行到的batch数目，用来判断训练是否需要停止
     int *t;
     float epoch;
-    int subdivisions;           // 对 net->batch 再次细分；使得net->batch（new） = net->batch（old）/net->subdivision;
-                                // 目的：使得实际运行的时候，GPU每次做 net->batch（new） 的运算，
+    int subdivisions;           // 对 net->batch 再次细分,使一次forward分成多次 sub-forward；
+                                // 使得net->batch（new） = net->batch（old）/net->subdivision;
+                                // 目的：使得实际运行的时候，单个GPU每次做 net->batch（new） 的运算，
                                 // 但是进行 net->batch（old）之后才做 BP，
                                 // 在保证batch_size 的基础上节省每次运算的显存消耗（针对小显存的解决方案）；
+
     layer *layers;              // 所有层的完整信息存储于此
     float *output;              // 网络最终输出 float[]
     learning_rate_policy policy;
@@ -445,13 +450,15 @@ typedef struct network{
     float gamma;
     float scale;                // 当net->policy=STEP，存储lr变化尺度
     float power;
-    int time_steps;             // ????,只知道与batch相关
+    int time_steps;             // 应该用于rnn相关的网络，目前不清楚用途
     int step;                   // 当net->policy=STEP，存储lr变化的batch数
     int max_batches;
     float *scales;              // 当net->policy=STEPS，存储lr变化的batch数
     int   *steps;               // 当net->policy=STEPS，存储lr变化的尺度
     int num_steps;              // 当net->policy=STEPS，存储lr变化的总次数
-    int burn_in;
+    int burn_in;                // 可以解释为“预热”;使lr由0开始指数级(增长速度2由power控制，default=4)h增长到预设的lr；
+                                // 当 batch_num == burn_in 时，lr达到预设lr.
+                                // 网络刚开始训练时，loss比较大，防止大的loss带来的网络梯度爆炸；
 
     int adam;                   // 1:使用Adam更新参数；0：不用
     float B1;
