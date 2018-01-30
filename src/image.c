@@ -198,6 +198,17 @@ void draw_box(image a, int x1, int y1, int x2, int y2, float r, float g, float b
     }
 }
 
+/**
+ * 描述：在图片中画出检测框，框边缘的宽度为w
+ *
+ * :param a: (type image)
+ * :param x1: top left x
+ * :param y1: top left y
+ * :param x2: bottom right x
+ * :param y2: bottom right y
+ * :param w: width of edges
+ *
+ * */
 void draw_box_width(image a, int x1, int y1, int x2, int y2, int w, float r, float g, float b)
 {
     int i;
@@ -259,7 +270,7 @@ void draw_detections(image im, int num, float thresh, box *boxes, float **probs,
             }
         }
         if(class >= 0){
-            int width = im.h * .006;
+            int width = im.h * .006;    // 计算检测框边缘的宽度
 
             /*
                if(0){
