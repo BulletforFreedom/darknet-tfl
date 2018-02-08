@@ -17,18 +17,18 @@ layer make_region_layer(int batch, int w, int h, int n, int classes, int coords)
 
     l.n = n;                                            // anchor的个数（一个cell多少个box）
     l.batch = batch;                                    // batch_size(one gpu on forward batch)
-    l.h = h;                                            // input image height
+    l.h = h;                                            // input image height(不明白，为嘛用输入图片的宽高初始化该层)
     l.w = w;                                            // input image width
-    l.c = n*(classes + coords + 1);                     // 输出通道数= anchor数*(类别+(tx,ty,tw,th)+置信度(t0))
-    l.out_w = l.w;
+    l.c = n*(classes + coords + 1);                     // 输入通道数= anchor数*(类别+(tx,ty,tw,th)+置信度(t0))
+    l.out_w = l.w;                                      // 输入的 W,H,C 与输出的一致，该层不改变数据的结构
     l.out_h = l.h;
     l.out_c = l.c;
-    l.classes = classes;
+    l.classes = classes;                                // 类别数
     l.coords = coords;                                  // 指（tx,ty,tw,th）
     l.cost = calloc(1, sizeof(float));
     l.biases = calloc(n*2, sizeof(float));              // box长宽的偏置
     l.bias_updates = calloc(n*2, sizeof(float));        // box长宽偏置的更新值
-    l.outputs = h*w*n*(classes + coords + 1);           // feature-map大小 * l.c
+    l.outputs = h*w*n*(classes + coords + 1);           // feature-map大小 * anchor * 每个anchor对应的参数
     l.inputs = l.outputs;
     l.truths = 30*(l.coords + 1);
     l.delta = calloc(batch*l.outputs, sizeof(float));
@@ -158,10 +158,13 @@ int entry_index(layer l, int batch, int location, int entry)
 void forward_region_layer(const layer l, network net)
 {
     int i,j,b,t,n;
+    /// 将net.input中的元素全部拷贝至l.output中; net.input中存储着上一层的输出;
     memcpy(l.output, net.input, l.outputs*l.batch*sizeof(float));
 
 #ifndef GPU
+    /// 遍历一个batch中的所有图片
     for (b = 0; b < l.batch; ++b){
+        /// 遍历每种anchor(一共 n 种类型的anchor)
         for(n = 0; n < l.n; ++n){
             int index = entry_index(l, b, n*l.w*l.h, 0);
             activate_array(l.output + index, 2*l.w*l.h, LOGISTIC);

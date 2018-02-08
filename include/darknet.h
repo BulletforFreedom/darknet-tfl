@@ -134,8 +134,8 @@ struct layer{
     int batch;
     int forced;
     int flipped;
-    int inputs;                 // 输入feature总大小：h*w*c
-    int outputs;                // 输出feature总大小：out_h*out_w*out_c
+    int inputs;                 // (one batch)输入feature总大小：h*w*c
+    int outputs;                // (one batch)输出feature总大小：out_h*out_w*out_c
     int nweights;               // weight 总个数
     int nbiases;                // bias 总个数
     int extra;
@@ -236,7 +236,7 @@ struct layer{
     float * weight_updates;
 
     float * delta;              // back-propagate 的梯度(float[])
-    float * output;             // 输出的feature（float[]）
+    float * output;             // layer output data  = 输出的feature（float[]）* batch_size
     float * squared;
     float * norms;
 
@@ -485,7 +485,7 @@ typedef struct network{
     int gpu_index;
     tree *hierarchy;
 
-    float *input;               // 输入数据的值 float[]
+    float *input;               // 输入数据的值 float[];有两种可能的取值(1)输入图片数据;(2)在froward时，上一层的输出;
     float *truth;               // 输入数据的Label float[]
     float *delta;
     float *workspace;

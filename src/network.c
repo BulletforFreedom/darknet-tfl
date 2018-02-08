@@ -205,6 +205,7 @@ void forward_network(network *netp)
 #endif
     network net = *netp;
     int i;
+    // 逐层forward
     for(i = 0; i < net.n; ++i){
         net.index = i;
         layer l = net.layers[i];
@@ -213,6 +214,7 @@ void forward_network(network *netp)
         }
         // 每一个layer上挂载的forward函数
         l.forward(l, net);
+        // 将每一层的输出直接赋值到 net.input 中
         net.input = l.output;
         if(l.truth) {
             net.truth = l.output;
