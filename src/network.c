@@ -178,7 +178,9 @@ char *get_layer_string(LAYER_TYPE a)
     return "none";
 }
 
-// 网络初始化
+/**
+ * 网络初始化.生成空网络
+ */
 network *make_network(int n)
 {
     network *net = calloc(1, sizeof(network));

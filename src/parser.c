@@ -114,13 +114,17 @@ void parse_data(char *data, float *a, int n)
     }
 }
 
+/**
+ * 在网络初始化的时候，
+ * 用于记录不同层之间的共享全局参数
+ * */
 typedef struct size_params{
-    int batch;
-    int inputs;
+    int batch;    // one gpu one forward batch size;
+    int inputs;   // 输入数据的大小 h*w*c
     int h;
     int w;
     int c;
-    int index;
+    int index;    // 记录当前初始化的网络层数
     int time_steps;
     network *net;
 } size_params;
@@ -290,6 +294,12 @@ softmax_layer parse_softmax(list *options, size_params params)
     return layer;
 }
 
+/**
+ * 解析 region_layer 的参数并返回一个 region_layer
+ *
+ * :param options: 特异于region_layer的参数
+ * :param params: 所有层共享的全局参数
+ * */
 layer parse_region(list *options, size_params params)
 {
     int coords = option_find_int(options, "coords", 4);
@@ -725,7 +735,7 @@ network *parse_network_cfg(char *filename)
 
     // 逐层读取参数，并打印到标准输出
     while(n){
-        params.index = count;
+        params.index = count;   // 记录当前初始化到的层数
         fprintf(stderr, "%5d ", count);
         // section类型：{type(char):层的名称,option(list):该层参数}
         s = (section *)n->val;

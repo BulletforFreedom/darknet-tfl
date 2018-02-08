@@ -16,9 +16,9 @@ layer make_region_layer(int batch, int w, int h, int n, int classes, int coords)
     l.type = REGION;
 
     l.n = n;                                            // anchor的个数（一个cell多少个box）
-    l.batch = batch;
-    l.h = h;
-    l.w = w;
+    l.batch = batch;                                    // batch_size(one gpu on forward batch)
+    l.h = h;                                            // input image height
+    l.w = w;                                            // input image width
     l.c = n*(classes + coords + 1);                     // 输出通道数= anchor数*(类别+(tx,ty,tw,th)+置信度(t0))
     l.out_w = l.w;
     l.out_h = l.h;
