@@ -92,6 +92,14 @@ float activate(float x, ACTIVATION a)
     return 0;
 }
 
+/**
+ * @details 对[x x+n]指针指向的值做 "激活"
+ *
+ * @param x：起始位置
+ * @param n：长度
+ * @param a：激活函数类型
+ *
+ * */
 void activate_array(float *x, const int n, const ACTIVATION a)
 {
     int i;

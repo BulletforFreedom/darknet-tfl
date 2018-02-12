@@ -17,8 +17,8 @@ layer make_region_layer(int batch, int w, int h, int n, int classes, int coords)
 
     l.n = n;                                            // anchor的个数（一个cell多少个box）
     l.batch = batch;                                    // batch_size(one gpu on forward batch)
-    l.h = h;                                            // input image height(不明白，为嘛用输入图片的宽高初始化该层)
-    l.w = w;                                            // input image width
+    l.h = h;                                            // input feature height
+    l.w = w;                                            // input feature width
     l.c = n*(classes + coords + 1);                     // 输入通道数= anchor数*(类别+(tx,ty,tw,th)+置信度(t0))
     l.out_w = l.w;                                      // 输入的 W,H,C 与输出的一致，该层不改变数据的结构
     l.out_h = l.h;
@@ -26,7 +26,7 @@ layer make_region_layer(int batch, int w, int h, int n, int classes, int coords)
     l.classes = classes;                                // 类别数
     l.coords = coords;                                  // 指（tx,ty,tw,th）
     l.cost = calloc(1, sizeof(float));
-    l.biases = calloc(n*2, sizeof(float));              // box长宽的偏置
+    l.biases = calloc(n*2, sizeof(float));              // box长宽的偏置; 为anchor boxes的宽和高赋初值(论文中表述为prior)
     l.bias_updates = calloc(n*2, sizeof(float));        // box长宽偏置的更新值
     l.outputs = h*w*n*(classes + coords + 1);           // feature-map大小 * anchor * 每个anchor对应的参数
     l.inputs = l.outputs;
@@ -73,6 +73,22 @@ void resize_region_layer(layer *l, int w, int h)
 #endif
 }
 
+/**
+ * @details 获取每个 grid cell 的 anchor boxes
+ *
+ *          [i,j] 是 grid cell 的左上角位置坐标
+ *
+ * @param x: l.output
+ * @param biases: l.biars
+ * @param n: anchor type(default 5)
+ * @param index: boxes 参数在 l.output 中的起始位置
+ * @param i: col of grid cell
+ * @param j: row of grid cell
+ * @param w: width of grid cell
+ * @param h: height of grid cell
+ * @param stride: stride of boxes params [x,y,w,h]，即 l.w*l.h
+ *
+ * */
 box get_region_box(float *x, float *biases, int n, int index, int i, int j, int w, int h, int stride)
 {
     box b;
@@ -148,13 +164,36 @@ float tisnan(float x)
     return (x != x);
 }
 
+/**
+ * @details 会在 forward_region_layer 中反复调用
+ *          用于确定需要更新的参数的位置
+ *
+ *          可以推出 l.output 中存储的数据结构如下：
+ *
+ *          #batch0#-&anchor type 0&-[xxx-yyy-www-hhh-ccc-C0C0C0-C1C1C1-C2C2C2]-&anchor type 1&-......#batch1#... ...
+ *          其中[x,y,w,h,c,C0,... ...,CN]每个元素都有 l.w*l.h 个
+ *
+ *
+ * @param l: type layer(一个 region_layer实例)
+ * @param batch: batch_size
+ * @param location:
+ * @param entry: classes coord conf 中的一个
+ *
+ * @return entry position
+ * */
 int entry_index(layer l, int batch, int location, int entry)
 {
-    int n =   location / (l.w*l.h);
-    int loc = location % (l.w*l.h);
+    int n =   location / (l.w*l.h);     /// 计算是属于哪类anchor（共5类）
+    int loc = location % (l.w*l.h);     /// 在当前anchor内的偏移量
     return batch*l.outputs + n*l.w*l.h*(l.coords+l.classes+1) + entry*l.w*l.h + loc;
 }
 
+/**
+ * @details region_layer 的前向，即使在GPU模式下也会调用；
+ *          输出BB的预测结果，
+ *
+ *
+ * */
 void forward_region_layer(const layer l, network net)
 {
     int i,j,b,t,n;
@@ -162,14 +201,20 @@ void forward_region_layer(const layer l, network net)
     memcpy(l.output, net.input, l.outputs*l.batch*sizeof(float));
 
 #ifndef GPU
-    /// 遍历一个batch中的所有图片
+    /// 遍历一个batch中的所有图片，对 dx，dy，conf，classes 做 logistic_regressio
     for (b = 0; b < l.batch; ++b){
         /// 遍历每种anchor(一共 n 种类型的anchor)
         for(n = 0; n < l.n; ++n){
+            /// entry_index的第三个输入参数为"n*l.w*l.h"，目的是保证格式的统一；
+            /// 其实有效数据只有第三个参数中的 n，以及第四个参数
+            /// 这一步，找到[dx,dy,dw,dh]的起始位置，[dx,dy,dw,dh]在数组最前面，所以偏移量为0；
             int index = entry_index(l, b, n*l.w*l.h, 0);
+            /// 第三个参数为 2*l.w*l.h，表示只对 dx 和 dy 做logistic的操作
             activate_array(l.output + index, 2*l.w*l.h, LOGISTIC);
+            /// 找到 confident 的起始位置(前面为[dx,dy,dw,dh]，所以 conf 偏移量为l.coords);
             index = entry_index(l, b, n*l.w*l.h, l.coords);
             if(!l.background) activate_array(l.output + index,   l.w*l.h, LOGISTIC);
+            /// 找到 classes 的起始位置(前面为[dx,dy,dw,dh,confident]，所以偏移量为l.coords+1);
             index = entry_index(l, b, n*l.w*l.h, l.coords + 1);
             if(!l.softmax && !l.softmax_tree) activate_array(l.output + index, l.classes*l.w*l.h, LOGISTIC);
         }
@@ -183,18 +228,33 @@ void forward_region_layer(const layer l, network net)
             count += group_size;
         }
     } else if (l.softmax){
+        /// =====计算分类的输出(SOFTMAX)=====
+        /// l.background 默认为0，!l.background = 1
+        /// l.coords + !l.background 使得指针起始位置指向 "classes"
         int index = entry_index(l, 0, 0, l.coords + !l.background);
+        /// ==softmax_cpu 输入解析==
+        /// 目的是计算一个 grid cell 的所有 classes 的 softmax
+        /// 1.输入起始位置(input):net.input + index；已经指向classes的第一个元素
+        /// 2.每次softmax元素个数(n):l.classes + l.background；
+        /// 3.进行softmax运算次数(batch):l.batch*l.n；作者把一个anchor_type的数据作为一个大batch
+        /// 4.大batch之间的间隔(batch_offset):其实就是两个anchor_type数据之间的间隔 l.inputs/l.n
+        /// 5.(group):针对于一个anchor_type，有 l.w*l.h 个 grid cell
+        /// 6.(group_offset):1
+        /// 7.softmax运算相邻元素间隔(stride): 同一个 cell 不同 classes 之间的间隔 = l.w*l.h；就是 grid cells 的个数
+        /// 8.(temp):
+        /// 9.输出起始位置(output):l.output + index
         softmax_cpu(net.input + index, l.classes + l.background, l.batch*l.n, l.inputs/l.n, l.w*l.h, 1, l.w*l.h, 1, l.output + index);
     }
 #endif
 
+    /// 为 l.delta 赋初值 0
     memset(l.delta, 0, l.outputs * l.batch * sizeof(float));
     if(!net.train) return;
     float avg_iou = 0;
     float recall = 0;
     float avg_cat = 0;
     float avg_obj = 0;
-    float avg_anyobj = 0;
+    float avg_anyobj = 0;   // 当前图片是否检测到物体
     int count = 0;
     int class_count = 0;
     *(l.cost) = 0;
@@ -235,29 +295,43 @@ void forward_region_layer(const layer l, network net)
         for (j = 0; j < l.h; ++j) {
             for (i = 0; i < l.w; ++i) {
                 for (n = 0; n < l.n; ++n) {
+                    /// 对于特定的anchor_type 遍历所有的 grid cell
+                    /// 每次得到一个 grid cell 起始位置的索引
                     int box_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 0);
+                    /// 获取当前grid cell，当前anchor_type的 BB 预测结果
                     box pred = get_region_box(l.output, l.biases, n, box_index, i, j, l.w, l.h, l.w*l.h);
+                    /// 当前 pred 与 GT 的最大IOU
                     float best_iou = 0;
+                    /// "30"这个参数,限制了一张输入图片最多有30个GT_BB
+                    /// TODO: 确认一下，在label数据输入的时候是否强制最多有30个BB的输入！！！！
                     for(t = 0; t < 30; ++t){
+                        /// net.truth是指向 label 的指针
+                        /// 第一个参数为GT中，每个BB的起始位置；第二个参数为BB中每个参数的stride；
                         box truth = float_to_box(net.truth + t*(l.coords + 1) + b*l.truths, 1);
+                        /// 如果发现truth的值为空，则跳出
                         if(!truth.x) break;
+                        /// 将每个 preds 与当前 truth 比较，获取最大IOU，看是否超出阈值；判定前景背景；
                         float iou = box_iou(pred, truth);
                         if (iou > best_iou) {
                             best_iou = iou;
                         }
                     }
+                    /// 获取 IOU_confidence,论文中表述为:Pr(object)*IOU(b,object);作为前景背景判断依据;
                     int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords);
                     avg_anyobj += l.output[obj_index];
+                    ///
                     l.delta[obj_index] = l.noobject_scale * (0 - l.output[obj_index]);
                     if(l.background) l.delta[obj_index] = l.noobject_scale * (1 - l.output[obj_index]);
+                    /// l.thresh 在 .cfg 配置文件中定义;default=0.6
                     if (best_iou > l.thresh) {
                         l.delta[obj_index] = 0;
                     }
-
+                    /// 当输入的图片数量(net.seen) < 12800(一个batch为64的话，大概10个batch);固定truth的值为 grid cell 的大小
+                    /// 估计这步是在batch比较小的时候加快网络收敛速度的trick
                     if(*(net.seen) < 12800){
                         box truth = {0};
-                        truth.x = (i + .5)/l.w;
-                        truth.y = (j + .5)/l.h;
+                        truth.x = (i + .5)/l.w;     // 归一化 grid cell 中心点 x
+                        truth.y = (j + .5)/l.h;     // 归一化 grid cell 中心点 y
                         truth.w = l.biases[2*n]/l.w;
                         truth.h = l.biases[2*n+1]/l.h;
                         delta_region_box(truth, l.output, l.biases, n, box_index, i, j, l.w, l.h, l.delta, .01, l.w*l.h);

@@ -774,6 +774,11 @@ data load_data_iseg(int n, char **paths, int m, int w, int h, int classes, int b
     return d;
 }
 
+/**
+ * @details
+ *
+ *
+ * */
 data load_data_region(int n, char **paths, int m, int w, int h, int size, int classes, float jitter, float hue, float saturation, float exposure)
 {
     char **random_paths = get_random_paths(paths, n, m);
@@ -945,6 +950,14 @@ data load_data_swag(char **paths, int n, int classes, float jitter)
     return d;
 }
 
+/**
+ * @details 读取物体检测任务的数据
+ *
+ * @param n:
+ * @param paths:
+ *
+ *
+ * */
 data load_data_detection(int n, char **paths, int m, int w, int h, int boxes, int classes, float jitter, float hue, float saturation, float exposure)
 {
     char **random_paths = get_random_paths(paths, n, m);

@@ -134,28 +134,28 @@ struct layer{
     int batch;
     int forced;
     int flipped;
-    int inputs;                 // (one batch)输入feature总大小：h*w*c
-    int outputs;                // (one batch)输出feature总大小：out_h*out_w*out_c
-    int nweights;               // weight 总个数
-    int nbiases;                // bias 总个数
+    int inputs;                 /// (one batch)输入feature总大小：h*w*c
+    int outputs;                /// (one batch)输出feature总大小：out_h*out_w*out_c
+    int nweights;               /// weight 总个数
+    int nbiases;                /// bias 总个数
     int extra;
     int truths;
-    int h,w,c;                  // 输入：高（行），宽（列），通道（filter）
-    int out_h, out_w, out_c;    // 输出：高（行），宽（列），通道（filter）
-    int n;                      // 不同的layer中这个参数的意义不一样；卷积层--number of filters
-    int max_boxes;
+    int h,w,c;                  /// 输入：高（行），宽（列），通道（filter）
+    int out_h, out_w, out_c;    /// 输出：高（行），宽（列），通道（filter）
+    int n;                      /// 不同的layer中这个参数的意义不一样；卷积层--number of filters, region_layer为anchor类别数
+    int max_boxes;              /// 目前只用在 region_layer 中，限制每张图片的bb数量的上限
     int groups;
-    int size;                   // size of filters
+    int size;                   /// size of filters
     int side;
-    int stride;                 // strides
+    int stride;                 /// strides
     int reverse;
     int flatten;
     int spatial;
-    int pad;                    // pad=0,则padding的值由padding的输入参数决定；pad=1，则padding=size/2；
+    int pad;                    /// pad=0,则padding的值由padding的输入参数决定；pad=1，则padding=size/2；
     int sqrt;
     int flip;
     int index;
-    int binary;                 // 是否为二值网络
+    int binary;                 /// 是否为二值网络
     int xnor;
     int steps;
     int hidden;
@@ -172,7 +172,7 @@ struct layer{
     int softmax;
     int classes;
     int coords;
-    int background;
+    int background;             /// 只在 region_layer 中有定义(default 0)
     int rescore;
     int objectness;
     int does_cost;
@@ -226,7 +226,7 @@ struct layer{
 
     float * binary_weights;
 
-    float * biases;             // 卷积核的bias(float[])
+    float * biases;             // 卷积核的bias(float[]); 在 region_layer 中，存储anchor boxes 的宽和高的初值(论文中叫 prior)
     float * bias_updates;
 
     float * scales;

@@ -688,8 +688,8 @@ int is_network(section *s)
  *                                                      ->val(char) #参数值
  *                                                      ->used(int) #参数是否被读取(初始值0)
  *
- * :param filename: .cfg文件路径
- * :return:
+ * @param filename: .cfg文件路径
+ * @return
  *      Network(type struct)
  */
 network *parse_network_cfg(char *filename)
@@ -811,7 +811,7 @@ network *parse_network_cfg(char *filename)
         n = n->next;
         ++count;
 
-        // 将上一层的输出作为下一层的输入
+        /// 将上一层的输出作为下一层的输入；如此，能够保证整个网络的输入输出在初始化阶段的时候就与预期一致
         if(n){
             params.h = l.out_h;
             params.w = l.out_w;
@@ -821,10 +821,10 @@ network *parse_network_cfg(char *filename)
     }
     free_list(sections);
 
-    // 找到COST层
+    /// 找到COST层
     layer out = get_network_output_layer(net);
 
-    // 将输出层的地址给到 net->outputs
+    /// 将输出层的地址给到 net->outputs
     net->outputs = out.outputs;
     net->truths = out.outputs;
 

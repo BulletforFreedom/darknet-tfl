@@ -263,6 +263,16 @@ float dot_cpu(int N, float *X, int INCX, float *Y, int INCY)
     return dot;
 }
 
+/**
+ * @details
+ *
+ * @param input: 输入数据起始位置
+ * @param n: 运算对元素总个数
+ * @param temp:
+ * @param stride: stride of array
+ * @param output: output data *ptr
+ *
+ * */
 void softmax(float *input, int n, float temp, int stride, float *output)
 {
     int i;
@@ -281,11 +291,26 @@ void softmax(float *input, int n, float temp, int stride, float *output)
     }
 }
 
-
+/**
+ * @details
+ *
+ * @param input:
+ * @param n: 需要做softmax运算的元素个数
+ * @param batch: region_layer 中以一个anchor_type的数据为一个batch
+ * @param batch_offset: 各个anchor_type间的stride
+ * @param groups: grid cell 的个数
+ * @param group_offset: 相邻 grid cell 起始元素的间隔
+ * @param stride: softmax运算相邻元素之间的间隔
+ * @param temp:
+ * @param output:
+ *
+ * */
 void softmax_cpu(float *input, int n, int batch, int batch_offset, int groups, int group_offset, int stride, float temp, float *output)
 {
     int g, b;
+    /// 遍历 anchor_type
     for(b = 0; b < batch; ++b){
+        /// 遍历 grid cell
         for(g = 0; g < groups; ++g){
             softmax(input + b*batch_offset + g*group_offset, n, temp, stride, output + b*batch_offset + g*group_offset);
         }
