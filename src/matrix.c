@@ -87,7 +87,15 @@ matrix copy_matrix(matrix m)
     }
     return c;
 }
-
+/**
+ * @details: 初始化一个矩阵，分配存储空间
+ *           用二维数组的方式存储
+ *
+ * @param rows: 矩阵行
+ * @param cols: 矩阵列
+ *
+ *
+ * */
 matrix make_matrix(int rows, int cols)
 {
     int i;

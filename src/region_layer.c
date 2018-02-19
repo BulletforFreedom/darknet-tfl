@@ -292,6 +292,8 @@ void forward_region_layer(const layer l, network net)
             }
             if(onlyclass) continue;
         }
+
+        /// =========计算"前景背景分类"的loss==========
         for (j = 0; j < l.h; ++j) {
             for (i = 0; i < l.w; ++i) {
                 for (n = 0; n < l.n; ++n) {
@@ -322,7 +324,8 @@ void forward_region_layer(const layer l, network net)
                     ///
                     l.delta[obj_index] = l.noobject_scale * (0 - l.output[obj_index]);
                     if(l.background) l.delta[obj_index] = l.noobject_scale * (1 - l.output[obj_index]);
-                    /// l.thresh 在 .cfg 配置文件中定义;default=0.6
+                    /// best_iou > l.thresh 则表明当前的BB已经与GT匹配上，loss=0
+                    /// l.thresh 在 .cfg 配置文件中定义;default=0.5
                     if (best_iou > l.thresh) {
                         l.delta[obj_index] = 0;
                     }
@@ -339,12 +342,17 @@ void forward_region_layer(const layer l, network net)
                 }
             }
         }
+        /// ============计算"bb偏移"和"类别预测"产生的loss==========
+        /// 只找与GT的中心点iou最大的anchor，计算相关的loss
         for(t = 0; t < 30; ++t){
             box truth = float_to_box(net.truth + t*(l.coords + 1) + b*l.truths, 1);
 
             if(!truth.x) break;
+            /// 同一个 grid cell 不同类型 anchor 之间,最大的iou
             float best_iou = 0;
+            /// 当iou最大时,anchor类型的编号
             int best_n = 0;
+            /// GT的中心点
             i = (truth.x * l.w);
             j = (truth.y * l.h);
             //printf("%d %f %d %f\n", i, truth.x*l.w, j, truth.y*l.h);
@@ -352,6 +360,9 @@ void forward_region_layer(const layer l, network net)
             truth_shift.x = 0;
             truth_shift.y = 0;
             //printf("index %d %d\n",i, j);
+
+            /// 获取每个GT "中心点" 所在的 grid cell，对应的5个anchor
+            /// l.n 为 anchor 的个数
             for(n = 0; n < l.n; ++n){
                 int box_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 0);
                 box pred = get_region_box(l.output, l.biases, n, box_index, i, j, l.w, l.h, l.w*l.h);
@@ -362,6 +373,8 @@ void forward_region_layer(const layer l, network net)
                 //printf("pred: (%f, %f) %f x %f\n", pred.x, pred.y, pred.w, pred.h);
                 pred.x = 0;
                 pred.y = 0;
+                /// 这个IOU在计算的时候只看 W H,因为他们的中心点一致
+                /// 只计算所谓"truth_shitf"与"pred_shift"之间的iou
                 float iou = box_iou(pred, truth_shift);
                 if (iou > best_iou){
                     best_iou = iou;
@@ -370,12 +383,15 @@ void forward_region_layer(const layer l, network net)
             }
             //printf("%d %f (%f, %f) %f x %f\n", best_n, best_iou, truth.x, truth.y, truth.w, truth.h);
 
+            /// 找到iou最大的anchor
             int box_index = entry_index(l, b, best_n*l.w*l.h + j*l.w + i, 0);
+            /// 计算由bb位置带来的loss，返回iou
             float iou = delta_region_box(truth, l.output, l.biases, best_n, box_index, i, j, l.w, l.h, l.delta, l.coord_scale *  (2 - truth.w*truth.h), l.w*l.h);
             if(l.coords > 4){
                 int mask_index = entry_index(l, b, best_n*l.w*l.h + j*l.w + i, 4);
                 delta_region_mask(net.truth + t*(l.coords + 1) + b*l.truths + 5, l.output, l.coords - 4, mask_index, l.delta, l.w*l.h, l.mask_scale);
             }
+            /// TODO:只要iou>0.5则表示该GT被找到？
             if(iou > .5) recall += 1;
             avg_iou += iou;
 

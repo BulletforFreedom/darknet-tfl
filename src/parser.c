@@ -305,7 +305,7 @@ layer parse_region(list *options, size_params params)
     int coords = option_find_int(options, "coords", 4);
     int classes = option_find_int(options, "classes", 20);
 
-    // anchor的个数(一个cell对应的box的个数)
+    /// anchor的个数(一个cell对应的box的个数)
     int num = option_find_int(options, "num", 1);
 
     layer l = make_region_layer(params.batch, params.w, params.h, num, classes, coords);

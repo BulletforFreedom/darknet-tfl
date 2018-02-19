@@ -39,13 +39,23 @@ char **get_random_paths_indexes(char **paths, int n, int m, int *indexes)
 }
 */
 
+/**
+ * @details 从总数为m的路径中，随机选出数量为n的路径
+ *
+ * @param paths: 所有路径数组
+ * @param n: 需要随机选出的数量
+ * @param m: 路径总数
+ *
+ * @return: 随机路径数组
+ *
+ * */
 char **get_random_paths(char **paths, int n, int m)
 {
     char **random_paths = calloc(n, sizeof(char*));
     int i;
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex); /// 因为有多个进程同时从库中读取图片
     for(i = 0; i < n; ++i){
-        int index = rand()%m;
+        int index = rand()%m;   /// 保证随机数一定在[0 M]范围之内
         random_paths[i] = paths[index];
         //if(i == 0) printf("%s\n", paths[index]);
     }
@@ -134,7 +144,17 @@ matrix load_image_augment_paths(char **paths, int n, int min, int max, int size,
     return X;
 }
 
-
+/**
+ * @details: 从标记数据文件中读取BB信息
+ *           数据格式可以在dk官网上查到
+ *
+ *           class x y w h
+ *
+ * @param filename: 标记数据文件名,一般后缀为 .TXT
+ * @param n:
+ *
+ *
+ * */
 box_label *read_boxes(char *filename, int *n)
 {
     FILE *file = fopen(filename, "r");
@@ -408,9 +428,25 @@ void fill_truth_iseg(char *path, int num_boxes, float *truth, int classes, int w
     free_image(part);
 }
 
-
+/**
+ * @details: 将一张图片的标记信息填充到 truth 制定的位置
+ *
+ * @param path: path of raw image
+ * @param num_boxes: number of bb
+ * @param truth: (type data->y->val) d.y.val[i] 第i个标记信息存储位置(指针)
+ * @param classes: number of classes
+ * @param flip: 图片是否水平翻转
+ * @param dx: 水平方向偏移
+ * @param dy: 竖直方向偏移
+ * @param sx:
+ * @param sy:
+ *
+ * @return:
+ *
+ * */
 void fill_truth_detection(char *path, int num_boxes, float *truth, int classes, int flip, float dx, float dy, float sx, float sy)
 {
+    /// 由原始图片路径获取标记数据路径
     char labelpath[4096];
     find_replace(path, "images", "labels", labelpath);
     find_replace(labelpath, "JPEGImages", "labels", labelpath);
@@ -420,10 +456,15 @@ void fill_truth_detection(char *path, int num_boxes, float *truth, int classes, 
     find_replace(labelpath, ".png", ".txt", labelpath);
     find_replace(labelpath, ".JPG", ".txt", labelpath);
     find_replace(labelpath, ".JPEG", ".txt", labelpath);
+
+    /// 用于记录一个文件中的BB数量
     int count = 0;
+    /// 将 labelpath 指向标记文件中的BB读入boxes,数量读入count
     box_label *boxes = read_boxes(labelpath, &count);
+    /// 将boxes中,打乱前n个BB的顺序
     randomize_boxes(boxes, count);
     correct_boxes(boxes, count, dx, dy, sx, sy, flip);
+    /// 限定count的最大取值为num_boxes(.cfg文件文件中设定的max,default=30)
     if(count > num_boxes) count = num_boxes;
     float x,y,w,h;
     int id;
@@ -953,66 +994,78 @@ data load_data_swag(char **paths, int n, int classes, float jitter)
 /**
  * @details 读取物体检测任务的数据
  *
- * @param n:
- * @param paths:
- *
+ * @param n: batch size for one gpu(net->batch * net->subdivisions * ngpus)
+ * @param paths: (type list)paths of raw images
+ * @param m: total number of images( len(paths) )
+ * @param w: final width of image
+ * @param h: final height of image
+ * @param boxes: max numbers of BB in a image
+ * @param classes: number of classes
+ * @param jitter: should images size jitter randomly
+ * @param hue:
+ * @param saturation:
+ * @param exposure:
  *
  * */
 data load_data_detection(int n, char **paths, int m, int w, int h, int boxes, int classes, float jitter, float hue, float saturation, float exposure)
 {
     char **random_paths = get_random_paths(paths, n, m);
     int i;
-    data d = {0};
+    data d = {0};   /// 存储所有输入数据相关信息的结构体
     d.shallow = 0;
 
-    d.X.rows = n;
-    d.X.vals = calloc(d.X.rows, sizeof(float*));
-    d.X.cols = h*w*3;
+    d.X.rows = n;   /// 图片张数
+    d.X.vals = calloc(d.X.rows, sizeof(float*));    /// 指向每张图片的指针
+    d.X.cols = h*w*3; /// 一张图片大小 W*H*C
 
-    d.y = make_matrix(n, 5*boxes);
+    d.y = make_matrix(n, 5*boxes);  /// 为图片的标记数据准备存储空间
     for(i = 0; i < n; ++i){
-        // orig为输入图片；sized为最终的图片；以下先生成一张空图片，然后附上初值0.5
+        /// orig为输入图片；sized为最终的图片；以下先生成一张空图片，然后附上初值0.5
         image orig = load_image_color(random_paths[i], 0, 0);
         image sized = make_image(w, h, orig.c);
         fill_image(sized, .5);
 
-        // 数据增强，为图片宽度和高度增加“抖动”（jitter）
-        // 目的在于下一行，改变图片的ratio
+        /// 数据增强，为图片宽度和高度增加“抖动”(jitter)
         float dw = jitter * orig.w;
         float dh = jitter * orig.h;
 
-        // 计算新的宽高比（ratio）
+        /// 数据增强，计算新的宽高比（ratio）
         float new_ar = (orig.w + rand_uniform(-dw, dw)) / (orig.h + rand_uniform(-dh, dh));
 
-        // 数据增强，对图片宽高进行尺度变换，缩放比例为[0.25,2]之间的随机数
+        /// 数据增强，对图片宽高进行尺度变换，缩放比例为[0.25,2]之间的随机数
         float scale = rand_uniform(.25, 2);
 
-        // 增强操作后图片的宽和高
+        /// 增强操作后图片的宽和高
         float nw, nh;
 
-        // 先尺度变换后进行ratio的变化
+        /// 先尺度变换后进行ratio的变化
         if(new_ar < 1){
+            /// w<h
             nh = scale * h;
             nw = nh * new_ar;
         } else {
+            /// w>h
             nw = scale * w;
             nh = nw / new_ar;
         }
 
-        // 数据增强，sized在“增强后图片”上采样的便宜亮
-        // 相当于给图片增加x,y方向的偏移量
+        /// 数据增强，sized在“增强后图片”上采样的偏移量
+        /// 相当于给图片增加x,y方向的偏移量
         float dx = rand_uniform(0, w - nw);
         float dy = rand_uniform(0, h - nh);
 
+        /// 将 orig 中像素的填充至 sized;从而获取增强后的图片
         place_image(orig, nw, nh, dx, dy, sized);
 
+        /// 色调增强
         random_distort_image(sized, hue, saturation, exposure);
 
+        /// 图片水平反转
         int flip = rand()%2;
         if(flip) flip_image(sized);
         d.X.vals[i] = sized.data;
 
-
+        /// 填充标记数据
         fill_truth_detection(random_paths[i], boxes, d.y.vals[i], classes, flip, -dx/w, -dy/h, nw/w, nh/h);
 
         free_image(orig);
