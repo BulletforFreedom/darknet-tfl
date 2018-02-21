@@ -276,8 +276,9 @@ layer parse_region(list *options, size_params params)
     int coords = option_find_int(options, "coords", 4);
     int classes = option_find_int(options, "classes", 20);
     int num = option_find_int(options, "num", 1);
+    int max_boxes = option_find_int_quiet(options, "max",30);
 
-    layer l = make_region_layer(params.batch, params.w, params.h, num, classes, coords);
+    layer l = make_region_layer(params.batch, params.w, params.h, num, classes, coords, max_boxes);
     assert(l.outputs == params.inputs);
 
     l.log = option_find_int_quiet(options, "log", 0);
@@ -285,7 +286,7 @@ layer parse_region(list *options, size_params params)
 
     l.softmax = option_find_int(options, "softmax", 0);
     l.background = option_find_int_quiet(options, "background", 0);
-    l.max_boxes = option_find_int_quiet(options, "max",30);
+    //l.max_boxes = option_find_int_quiet(options, "max",30);
     l.jitter = option_find_float(options, "jitter", .2);
     l.rescore = option_find_int_quiet(options, "rescore",0);
 
