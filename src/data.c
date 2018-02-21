@@ -421,7 +421,7 @@ void fill_truth_detection(char *path, int num_boxes, float *truth, int classes, 
     randomize_boxes(boxes, count);
     correct_boxes(boxes, count, dx, dy, sx, sy, flip);
 
-    printf("Number of GT BB in %s:%d",labelpath,count);
+    printf("Number of GT BB in %s:%d\n",labelpath,count);
 
     if(count > num_boxes) count = num_boxes;
     float x,y,w,h;

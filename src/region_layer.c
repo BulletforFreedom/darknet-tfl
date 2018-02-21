@@ -157,6 +157,7 @@ int entry_index(layer l, int batch, int location, int entry)
 
 void forward_region_layer(const layer l, network net)
 {
+    printf("##(func)forward_region_layer");
     int i,j,b,t,n;
     memcpy(l.output, net.input, l.outputs*l.batch*sizeof(float));
 
@@ -244,7 +245,7 @@ void forward_region_layer(const layer l, network net)
                         }
                     }
 
-                    printf("(CPU)Number of GT BB when training:%d",t);
+                    printf("(CPU)Number of GT BB when training:%d\n",t);
 
                     int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords);
                     avg_anyobj += l.output[obj_index];
