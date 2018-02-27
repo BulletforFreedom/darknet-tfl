@@ -1,8 +1,9 @@
-GPU=1
-CUDNN=1
+GPU=0
+CUDNN=0
 OPENCV=0
 OPENMP=0
-DEBUG=1
+OPENBLAS=1
+DEBUG=0
 
 ARCH= -gencode arch=compute_30,code=sm_30 \
       -gencode arch=compute_35,code=sm_35 \
@@ -43,6 +44,12 @@ COMMON+= -DOPENCV
 CFLAGS+= -DOPENCV
 LDFLAGS+= `pkg-config --libs opencv` 
 COMMON+= `pkg-config --cflags opencv` 
+endif
+
+ifeq ($(OPENBLAS), 1)
+COMMON+= -I/opt/OpenBLAS/include/
+CFLAGS+= -DOPENBLAS
+LDFLAGS+= -L/opt/OpenBLAS/lib -lopenblas -lpthread -lgfortran
 endif
 
 ifeq ($(GPU), 1) 

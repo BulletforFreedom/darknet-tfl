@@ -158,7 +158,7 @@ int entry_index(layer l, int batch, int location, int entry)
 
 void forward_region_layer(const layer l, network net)
 {
-    printf("##(func)forward_region_layer");
+    //printf("##(func)forward_region_layer");
     int i,j,b,t,n;
     memcpy(l.output, net.input, l.outputs*l.batch*sizeof(float));
 
