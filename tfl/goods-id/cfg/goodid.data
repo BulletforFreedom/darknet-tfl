@@ -1,0 +1,5 @@
+classes=7
+train=/mnt/nas/tanfulun/Data/GoodsID/train.txt
+val=/mnt/nas/tanfulun/Data/GoodsID/val.txt
+names=/mnt/nas/tanfulun/Project/darknet/tfl/goods-id/goods.names
+backup=/mnt/nas/tanfulun/Project/darknet/tfl/goods-id/backup

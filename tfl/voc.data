@@ -1,0 +1,6 @@
+classes= 20
+train  = /mnt/nas/tanfulun/Data/pascal_voc/train.txt
+valid  = /mnt/nas/tanfulun/Data/pascal_voc/2007_test.txt
+names = data/voc.names
+backup = backup
+
