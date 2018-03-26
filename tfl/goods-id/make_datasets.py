@@ -13,7 +13,7 @@ testSet_list = []
 val_train_ratio = [1,9]
 
 # --
-wd = "/mnt/nas/tanfulun/Data/GoodsID"
+wd = "/mnt/lvmhdd/tanfulun/workspaces/Data/GoodsID"
 
 raw_images_dir = os.path.join(wd,'images-raw')
 save_dir = os.path.join(wd,'ImageSets','Main')

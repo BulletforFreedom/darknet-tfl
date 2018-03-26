@@ -1,5 +1,5 @@
 classes=7
-train=/mnt/nas/tanfulun/Data/GoodsID/train.txt
-val=/mnt/nas/tanfulun/Data/GoodsID/val.txt
-names=/mnt/nas/tanfulun/Project/darknet/tfl/goods-id/goods.names
-backup=/mnt/nas/tanfulun/Project/darknet/tfl/goods-id/backup
+train=/mnt/lvmhdd/tanfulun/workspaces/Data/GoodsID/train.txt
+val=/mnt/lvmhdd/tanfulun/workspaces/Data/GoodsID/val.txt
+names=/mnt/lvmhdd/tanfulun/workspaces/Project/darknet-tfl/tfl/goods-id/goods.names
+backup=/mnt/lvmhdd/tanfulun/workspaces/Project/darknet-tfl/tfl/goods-id/backup
