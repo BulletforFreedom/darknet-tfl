@@ -16,7 +16,7 @@ dataset_conf = 'tfl/goods-id/cfg/goodid.data'
 #model_weights_path = 'pretrain_models/darknet19_448.conv.23'
 
 # finetune from darknet19-imagenet12-608
-model_struct_path = 'tfl/goods-id/cfg/yolo-voc-800.cfg'
+model_struct_path = 'tfl/goods-id/cfg/yolo-voc-800-multiscale.cfg'
 model_weights_path = 'pretrain_models/darknet19_448.conv.23'
 
 #start-training-time
@@ -24,14 +24,14 @@ print time.ctime()
 stime = time.time()
 
 if not restart_training:
-    #os.system('./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,3')
-    #os.system('nohup ./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,3'+' >goodsid.log 2>&1')
-    os.system('./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,3')
+    #os.system('./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,1')
+    os.system('nohup ./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,1'+' >goodsid.log 2>&1')
+    #os.system('./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,1')
 else:
-    suffix = '20000'
-    model_weights_path = 'tfl/goods-id/backup/yolo-voc-800_20000.weights'
-    os.system('nohup ./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,3'+' >goodsid%s.log 2>&1'%suffix)
-    #os.system('./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,3')
+    suffix = '4000'
+    model_weights_path = 'tfl/goods-id/backup/yolo-voc-800-multiscale_4000.weights'
+    os.system('nohup ./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,1'+' >goodsid%s.log 2>&1'%suffix)
+    #os.system('./darknet detector train'+' '+dataset_conf+' '+model_struct_path+' '+model_weights_path+' -gpus 0,1')
 
 #end-training-time
 print time.ctime()
